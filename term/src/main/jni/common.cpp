@@ -88,7 +88,7 @@ jint JNI_OnLoad(JavaVM* vm, void* reserved) {
     }
 
     if (init_FileCompat(env) != JNI_TRUE) {
-        LOGE("ERROR: init of Exec failed");
+        LOGE("ERROR: init of FileCompat failed");
         goto bail;
     }
 

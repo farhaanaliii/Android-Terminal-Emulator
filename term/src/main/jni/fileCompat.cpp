@@ -24,14 +24,16 @@
 
 static jboolean testExecute(JNIEnv *env, jobject clazz, jstring jPathString)
 {
-    const char *pathname = nullptr;
-    int result;
+    if (!jPathString) {
+        return JNI_FALSE;
+    }
 
-    /* XXX We should convert CESU-8 to UTF-8 to deal with potential non-BMP
-       chars in pathname */
-    pathname = env->GetStringUTFChars(jPathString, nullptr);
+    const char *pathname = env->GetStringUTFChars(jPathString, nullptr);
+    if (!pathname) {
+        return JNI_FALSE;
+    }
 
-    result = access(pathname, X_OK);
+    int result = access(pathname, X_OK);
 
     env->ReleaseStringUTFChars(jPathString, pathname);
     return (result == 0);

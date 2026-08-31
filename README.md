@@ -1,7 +1,6 @@
 # Terminal Emulator for Android
 
-*Note:* Terminal Emulator for Android development has ended. I am not
-accepting pull requests any more.
+*Note:* This is a fork of the original Terminal Emulator for Android. I will try to maintain it and have updated it for modern Android (Android 14 / SDK 34), but it is not recommended to use this.
 
 Terminal Emulator for Android is a terminal emulator for communicating with the
 built-in Android shell. It emulates a reasonably large subset of Digital

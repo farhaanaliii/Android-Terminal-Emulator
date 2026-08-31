@@ -143,13 +143,23 @@ JNIEXPORT void JNICALL Java_jackpal_androidterm_TermExec_sendSignal(JNIEnv *env,
 }
 
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_waitFor(JNIEnv *env, jclass clazz, jint procId) {
-    int status;
-    waitpid(procId, &status, 0);
-    int result = 0;
-    if (WIFEXITED(status)) {
-        result = WEXITSTATUS(status);
+    int status = 0;
+    int res;
+    do {
+        res = waitpid(procId, &status, 0);
+    } while (res == -1 && errno == EINTR);
+
+    if (res == -1) {
+        return -1;
     }
-    return result;
+
+    if (WIFEXITED(status)) {
+        return WEXITSTATUS(status);
+    } else if (WIFSIGNALED(status)) {
+        return -WTERMSIG(status);
+    }
+
+    return 0;
 }
 
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInternal(JNIEnv *env, jclass clazz,

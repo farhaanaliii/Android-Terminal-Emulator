@@ -20,19 +20,18 @@
 #include <sys/ioctl.h>
 #include <sys/wait.h>
 #include <dirent.h>
-#include <errno.h>
+#include <cerrno>
 #include <fcntl.h>
-#include <stdlib.h>
+#include <cstdlib>
 #include <unistd.h>
 #include <termios.h>
-#include <signal.h>
-
-typedef unsigned short char16_t;
+#include <csignal>
+#include <cstring>
 
 class String8 {
 public:
     String8() {
-        mString = 0;
+        mString = nullptr;
     }
 
     ~String8() {
@@ -41,7 +40,7 @@ public:
         }
     }
 
-    void set(const char16_t* o, size_t numChars) {
+    void set(const jchar* o, size_t numChars) {
         if (mString) {
             free(mString);
         }
@@ -95,20 +94,20 @@ static void closeNonstandardFileDescriptors() {
     // the form "properties_fd,sizeOfSharedMemory"
     int properties_fd = -1;
     char* properties_fd_string = getenv("ANDROID_PROPERTY_WORKSPACE");
-    if (properties_fd_string != NULL) {
-        properties_fd = atoi(properties_fd_string);
+    if (properties_fd_string != nullptr) {
+        properties_fd = (int) strtol(properties_fd_string, nullptr, 10);
     }
     DIR *dir = opendir("/proc/self/fd");
-    if(dir != NULL) {
+    if(dir != nullptr) {
         int dir_fd = dirfd(dir);
 
         while(true) {
             struct dirent *entry = readdir(dir);
-            if(entry == NULL) {
+            if(entry == nullptr) {
                 break;
             }
 
-            int fd = atoi(entry->d_name);
+            int fd = (int) strtol(entry->d_name, nullptr, 10);
             if(fd > STDERR_FILENO && fd != dir_fd && fd != properties_fd) {
                 close(fd);
             }
@@ -179,7 +178,7 @@ static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], c
 
 extern "C" {
 
-JNIEXPORT void JNICALL Java_jackpal_androidterm_TermExec_sendSignal(JNIEnv *env, jobject clazz,
+JNIEXPORT void JNICALL Java_jackpal_androidterm_TermExec_sendSignal(JNIEnv *env, jclass clazz,
     jint procId, jint signal)
 {
     kill(procId, signal);
@@ -198,7 +197,7 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_waitFor(JNIEnv *env, jc
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInternal(JNIEnv *env, jclass clazz,
     jstring cmd, jobjectArray args, jobjectArray envVars, jint masterFd)
 {
-    const jchar* str = cmd ? env->GetStringCritical(cmd, 0) : 0;
+    const jchar* str = cmd ? env->GetStringCritical(cmd, nullptr) : nullptr;
     String8 cmd_8;
     if (str) {
         cmd_8.set(str, env->GetStringLength(cmd));
@@ -206,7 +205,7 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
     }
 
     jsize size = args ? env->GetArrayLength(args) : 0;
-    char **argv = NULL;
+    char **argv = nullptr;
     String8 tmp_8;
     if (size > 0) {
         argv = (char **)malloc((size+1)*sizeof(char *));
@@ -215,8 +214,8 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
             return 0;
         }
         for (int i = 0; i < size; ++i) {
-            jstring arg = reinterpret_cast<jstring>(env->GetObjectArrayElement(args, i));
-            str = env->GetStringCritical(arg, 0);
+            auto arg = reinterpret_cast<jstring>(env->GetObjectArrayElement(args, i));
+            str = env->GetStringCritical(arg, nullptr);
             if (!str) {
                 throwOutOfMemoryError(env, "Couldn't get argument from array");
                 return 0;
@@ -225,11 +224,11 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
             env->ReleaseStringCritical(arg, str);
             argv[i] = strdup(tmp_8.string());
         }
-        argv[size] = NULL;
+        argv[size] = nullptr;
     }
 
     size = envVars ? env->GetArrayLength(envVars) : 0;
-    char **envp = NULL;
+    char **envp = nullptr;
     if (size > 0) {
         envp = (char **)malloc((size+1)*sizeof(char *));
         if (!envp) {
@@ -237,8 +236,8 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
             return 0;
         }
         for (int i = 0; i < size; ++i) {
-            jstring var = reinterpret_cast<jstring>(env->GetObjectArrayElement(envVars, i));
-            str = env->GetStringCritical(var, 0);
+            auto var = reinterpret_cast<jstring>(env->GetObjectArrayElement(envVars, i));
+            str = env->GetStringCritical(var, nullptr);
             if (!str) {
                 throwOutOfMemoryError(env, "Couldn't get env var from array");
                 return 0;
@@ -247,7 +246,7 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
             env->ReleaseStringCritical(var, str);
             envp[i] = strdup(tmp_8.string());
         }
-        envp[size] = NULL;
+        envp[size] = nullptr;
     }
 
     int ptm = create_subprocess(env, cmd_8.string(), argv, envp, masterFd);

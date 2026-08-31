@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-#ifndef _FILECOMPAT_H
-#define _FILECOMPAT_H 1
+#ifndef FILECOMPAT_H
+#define FILECOMPAT_H
 
 #include "jni.h"
 
 int init_FileCompat(JNIEnv *env);
 
-#endif	/* !defined(_FILECOMPAT_H) */
+#endif	/* FILECOMPAT_H */

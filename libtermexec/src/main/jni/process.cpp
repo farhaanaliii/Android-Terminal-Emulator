@@ -19,7 +19,7 @@
 #include <sys/types.h>
 #include <sys/ioctl.h>
 #include <sys/wait.h>
-#include <dirent.h>
+#include <sys/resource.h>
 #include <cerrno>
 #include <fcntl.h>
 #include <cstdlib>
@@ -28,7 +28,7 @@
 #include <csignal>
 #include <cstring>
 
-
+extern char **environ;
 
 static int throwOutOfMemoryError(JNIEnv *env, const char *message)
 {
@@ -57,32 +57,11 @@ static int throwIOException(JNIEnv *env, int errnum, const char *message)
     return env->ThrowNew(exClass, message);
 }
 
-static void closeNonstandardFileDescriptors() {
-    // Android uses shared memory to communicate between processes. The file descriptor is passed
-    // to child processes using the environment variable ANDROID_PROPERTY_WORKSPACE, which is of
-    // the form "properties_fd,sizeOfSharedMemory"
-    int properties_fd = -1;
-    char* properties_fd_string = getenv("ANDROID_PROPERTY_WORKSPACE");
-    if (properties_fd_string != nullptr) {
-        properties_fd = (int) strtol(properties_fd_string, nullptr, 10);
-    }
-    DIR *dir = opendir("/proc/self/fd");
-    if(dir != nullptr) {
-        int dir_fd = dirfd(dir);
-
-        while(true) {
-            struct dirent *entry = readdir(dir);
-            if(entry == nullptr) {
-                break;
-            }
-
-            int fd = (int) strtol(entry->d_name, nullptr, 10);
-            if(fd > STDERR_FILENO && fd != dir_fd && fd != properties_fd) {
-                close(fd);
-            }
+static void closeNonstandardFileDescriptors(int properties_fd, int max_fd) {
+    for (int fd = STDERR_FILENO + 1; fd < max_fd; ++fd) {
+        if (fd != properties_fd) {
+            close(fd);
         }
-
-        closedir(dir);
     }
 }
 
@@ -91,6 +70,18 @@ static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], c
     // same size as Android 1.6 libc/unistd/ptsname_r.c
     char devname[64];
     pid_t pid;
+
+    int properties_fd = -1;
+    char* properties_fd_string = getenv("ANDROID_PROPERTY_WORKSPACE");
+    if (properties_fd_string != nullptr) {
+        properties_fd = (int) strtol(properties_fd_string, nullptr, 10);
+    }
+
+    struct rlimit rl;
+    int max_fd = 1024;
+    if (getrlimit(RLIMIT_NOFILE, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY) {
+        max_fd = (int) rl.rlim_cur;
+    }
 
     fcntl(masterFd, F_SETFD, FD_CLOEXEC);
 
@@ -122,7 +113,7 @@ static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], c
         setsid();
 
         pts = open(devname, O_RDWR);
-        if(pts < 0) exit(-1);
+        if(pts < 0) _exit(127);
 
         ioctl(pts, TIOCSCTTY, 0);
 
@@ -130,16 +121,14 @@ static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], c
         dup2(pts, 1);
         dup2(pts, 2);
 
-        closeNonstandardFileDescriptors();
-
-        if (envp) {
-            for (; *envp; ++envp) {
-                putenv(*envp);
-            }
+        if (pts > STDERR_FILENO) {
+            close(pts);
         }
 
-        execv(cmd, argv);
-        exit(-1);
+        closeNonstandardFileDescriptors(properties_fd, max_fd);
+
+        execve(cmd, argv, envp ? envp : environ);
+        _exit(127);
     } else {
         return (int) pid;
     }

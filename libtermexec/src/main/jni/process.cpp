@@ -28,38 +28,7 @@
 #include <csignal>
 #include <cstring>
 
-class String8 {
-public:
-    String8() {
-        mString = nullptr;
-    }
 
-    ~String8() {
-        if (mString) {
-            free(mString);
-        }
-    }
-
-    void set(const jchar* o, size_t numChars) {
-        if (mString) {
-            free(mString);
-        }
-        mString = (char*) malloc(numChars + 1);
-        if (!mString) {
-            return;
-        }
-        for (size_t i = 0; i < numChars; i++) {
-            mString[i] = (char) o[i];
-        }
-        mString[numChars] = '\0';
-    }
-
-    const char* string() {
-        return mString;
-    }
-private:
-    char* mString;
-};
 
 static int throwOutOfMemoryError(JNIEnv *env, const char *message)
 {
@@ -197,70 +166,76 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_waitFor(JNIEnv *env, jc
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInternal(JNIEnv *env, jclass clazz,
     jstring cmd, jobjectArray args, jobjectArray envVars, jint masterFd)
 {
-    const jchar* str = cmd ? env->GetStringCritical(cmd, nullptr) : nullptr;
-    String8 cmd_8;
-    if (str) {
-        cmd_8.set(str, env->GetStringLength(cmd));
-        env->ReleaseStringCritical(cmd, str);
-    }
+    int ptm = 0;
+    const char *cmd_str = cmd ? env->GetStringUTFChars(cmd, nullptr) : nullptr;
 
     jsize size = args ? env->GetArrayLength(args) : 0;
     char **argv = nullptr;
-    String8 tmp_8;
+    char **envp = nullptr;
     if (size > 0) {
         argv = (char **)malloc((size+1)*sizeof(char *));
         if (!argv) {
             throwOutOfMemoryError(env, "Couldn't allocate argv array");
-            return 0;
+            goto cleanup;
         }
         for (int i = 0; i < size; ++i) {
             auto arg = reinterpret_cast<jstring>(env->GetObjectArrayElement(args, i));
-            str = env->GetStringCritical(arg, nullptr);
-            if (!str) {
+            const char *arg_str = arg ? env->GetStringUTFChars(arg, nullptr) : nullptr;
+            if (!arg_str) {
+                if (arg) env->DeleteLocalRef(arg);
                 throwOutOfMemoryError(env, "Couldn't get argument from array");
-                return 0;
+                argv[i] = nullptr;
+                goto cleanup;
             }
-            tmp_8.set(str, env->GetStringLength(arg));
-            env->ReleaseStringCritical(arg, str);
-            argv[i] = strdup(tmp_8.string());
+            argv[i] = strdup(arg_str);
+            env->ReleaseStringUTFChars(arg, arg_str);
+            env->DeleteLocalRef(arg);
+            if (!argv[i]) {
+                throwOutOfMemoryError(env, "Couldn't allocate argument string");
+                goto cleanup;
+            }
         }
         argv[size] = nullptr;
     }
 
     size = envVars ? env->GetArrayLength(envVars) : 0;
-    char **envp = nullptr;
     if (size > 0) {
         envp = (char **)malloc((size+1)*sizeof(char *));
         if (!envp) {
             throwOutOfMemoryError(env, "Couldn't allocate envp array");
-            return 0;
+            goto cleanup;
         }
         for (int i = 0; i < size; ++i) {
             auto var = reinterpret_cast<jstring>(env->GetObjectArrayElement(envVars, i));
-            str = env->GetStringCritical(var, nullptr);
-            if (!str) {
+            const char *var_str = var ? env->GetStringUTFChars(var, nullptr) : nullptr;
+            if (!var_str) {
+                if (var) env->DeleteLocalRef(var);
                 throwOutOfMemoryError(env, "Couldn't get env var from array");
-                return 0;
+                envp[i] = nullptr;
+                goto cleanup;
             }
-            tmp_8.set(str, env->GetStringLength(var));
-            env->ReleaseStringCritical(var, str);
-            envp[i] = strdup(tmp_8.string());
+            envp[i] = strdup(var_str);
+            env->ReleaseStringUTFChars(var, var_str);
+            env->DeleteLocalRef(var);
+            if (!envp[i]) {
+                throwOutOfMemoryError(env, "Couldn't allocate env var string");
+                goto cleanup;
+            }
         }
         envp[size] = nullptr;
     }
 
-    int ptm = create_subprocess(env, cmd_8.string(), argv, envp, masterFd);
+    ptm = create_subprocess(env, cmd_str, argv, envp, masterFd);
+
+cleanup:
+    if (cmd) env->ReleaseStringUTFChars(cmd, cmd_str);
 
     if (argv) {
-        for (char **tmp = argv; *tmp; ++tmp) {
-            free(*tmp);
-        }
+        for (char **tmp = argv; *tmp; ++tmp) free(*tmp);
         free(argv);
     }
     if (envp) {
-        for (char **tmp = envp; *tmp; ++tmp) {
-            free(*tmp);
-        }
+        for (char **tmp = envp; *tmp; ++tmp) free(*tmp);
         free(envp);
     }
 

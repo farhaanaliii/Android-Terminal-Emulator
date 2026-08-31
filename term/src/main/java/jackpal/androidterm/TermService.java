@@ -28,6 +28,9 @@ import android.content.Intent;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
 import android.app.Notification;
 import android.app.PendingIntent;
 
@@ -90,17 +93,45 @@ public class TermService extends Service implements TermSession.FinishCallback
         editor.putString("home_path", homePath);
         editor.commit();
 
-        compat = new ServiceForegroundCompat(this);
         mTermSessions = new SessionList();
 
-        /* Put the service in the foreground. */
-        Notification notification = new Notification(R.drawable.ic_stat_service_notification_icon, getText(R.string.service_notify_text), System.currentTimeMillis());
-        notification.flags |= Notification.FLAG_ONGOING_EVENT;
+        String channelId = "term_service";
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            NotificationChannel channel = new NotificationChannel(channelId,
+                    "Terminal Service", NotificationManager.IMPORTANCE_LOW);
+            NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+            nm.createNotificationChannel(channel);
+        }
+
         Intent notifyIntent = new Intent(this, Term.class);
         notifyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifyIntent, 0);
-        notification.setLatestEventInfo(this, getText(R.string.application_terminal), getText(R.string.service_notify_text), pendingIntent);
-        compat.startForeground(RUNNING_NOTIFICATION, notification);
+        int piFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            piFlags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifyIntent, piFlags);
+
+        Notification notification;
+        Notification.Builder builder;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            builder = new Notification.Builder(this, channelId);
+        } else {
+            builder = new Notification.Builder(this);
+        }
+
+        notification = builder
+                .setContentTitle(getText(R.string.application_terminal))
+                .setContentText(getText(R.string.service_notify_text))
+                .setSmallIcon(R.drawable.ic_stat_service_notification_icon)
+                .setContentIntent(pendingIntent)
+                .setOngoing(true)
+                .build();
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            startForeground(RUNNING_NOTIFICATION, notification, android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_SPECIAL_USE);
+        } else {
+            startForeground(RUNNING_NOTIFICATION, notification);
+        }
 
         Log.d(TermDebug.LOG_TAG, "TermService started");
         return;
@@ -108,7 +139,7 @@ public class TermService extends Service implements TermSession.FinishCallback
 
     @Override
     public void onDestroy() {
-        compat.stopForeground(true);
+        stopForeground(true);
         for (TermSession session : mTermSessions) {
             /* Don't automatically remove from list of sessions -- we clear the
              * list below anyway and we could trigger
@@ -141,8 +172,12 @@ public class TermService extends Service implements TermSession.FinishCallback
                     .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     .putExtra(RemoteInterface.PRIVEXTRA_TARGET_WINDOW, sessionHandle);
 
+            int piFlags = 0;
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                piFlags |= PendingIntent.FLAG_IMMUTABLE;
+            }
             final PendingIntent result = PendingIntent.getActivity(getApplicationContext(), sessionHandle.hashCode(),
-                    switchIntent, 0);
+                    switchIntent, piFlags);
 
             final PackageManager pm = getPackageManager();
             final String[] pkgs = pm.getPackagesForUid(getCallingUid());

@@ -61,8 +61,10 @@ static void android_os_Exec_setPtyUTF8Mode(JNIEnv *env, jobject clazz, jint fd, 
 {
     struct termios tios{};
 
-    if (my_tcgetattr(fd, &tios) != 0)
+    if (my_tcgetattr(fd, &tios) != 0) {
         env->ThrowNew(env->FindClass("java/io/IOException"), "Failed to get terminal attributes");
+        return;
+    }
 
     if (utf8Mode) {
         tios.c_iflag |= IUTF8;

@@ -28,6 +28,9 @@ public class FileCompat {
         }
     }
 
+    // Never called from Java anymore, but JNI_OnLoad in the native library
+    // looks this class up by name to register testExecute -- removing it
+    // would make the whole library fail to load.
     private static class Api8OrEarlier {
         static {
             System.loadLibrary("jackpal-androidterm5");
@@ -41,10 +44,6 @@ public class FileCompat {
     }
 
     public static boolean canExecute(File file) {
-        if (AndroidCompat.SDK < 9) {
-            return Api8OrEarlier.canExecute(file);
-        } else {
-            return Api9OrLater.canExecute(file);
-        }
+        return Api9OrLater.canExecute(file);
     }
 }

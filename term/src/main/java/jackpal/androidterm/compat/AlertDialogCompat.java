@@ -54,15 +54,7 @@ public class AlertDialogCompat extends AlertDialog
   ////////////////////////////////////////////////////////////
   public static AlertDialog newInstance(Context context, int theme)
   {
-    if(AndroidCompat.SDK >= 14)
-    {
-      return(new Api14OrLater(context, theme));
-    }
-    if(AndroidCompat.SDK >= 11)
-    {
-      return(new Api11OrLater(context, theme));
-    }
-    return(new AlertDialogCompat(context));
+    return(new Api14OrLater(context, theme));
   }
   ////////////////////////////////////////////////////////////
   public static AlertDialog newInstance(Context context, boolean cancelable, DialogInterface.OnCancelListener cancelListener)
@@ -72,11 +64,7 @@ public class AlertDialogCompat extends AlertDialog
   ////////////////////////////////////////////////////////////
 
   public static AlertDialog.Builder newInstanceBuilder(Context context, int theme) {
-    if (AndroidCompat.SDK >= 11) {
-      return new Api11OrLaterBuilder(context, theme);
-    } else {
-      return new AlertDialog.Builder(context);
-    }
+    return new Api11OrLaterBuilder(context, theme);
   }
   private static class Api11OrLaterBuilder extends AlertDialog.Builder {
     public Api11OrLaterBuilder(Context context) {

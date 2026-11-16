@@ -31,6 +31,7 @@ import android.graphics.Paint;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.text.SpannableStringBuilder;
 import android.text.TextUtils;
 import android.text.style.URLSpan;
@@ -470,7 +471,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     /**
      * Our message handler class. Implements a periodic callback.
      */
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
 
     /**
      * Called by the TermSession when the contents of the view need updating

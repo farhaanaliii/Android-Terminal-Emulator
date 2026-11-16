@@ -111,7 +111,7 @@ public class TermSession {
     private FinishCallback mFinishCallback;
 
     private boolean mIsRunning = false;
-    private Handler mMsgHandler = new Handler() {
+    private Handler mMsgHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             if (!mIsRunning) {
@@ -184,7 +184,7 @@ public class TermSession {
             public void run() {
                 Looper.prepare();
 
-                mWriterHandler = new Handler() {
+                mWriterHandler = new Handler(Looper.myLooper()) {
                     @Override
                     public void handleMessage(Message msg) {
                         if (msg.what == NEW_OUTPUT) {

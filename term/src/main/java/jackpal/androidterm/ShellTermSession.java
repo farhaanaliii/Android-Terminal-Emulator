@@ -17,6 +17,7 @@
 package jackpal.androidterm;
 
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
@@ -38,7 +39,7 @@ public class ShellTermSession extends GenericTermSession {
     private String mInitialCommand;
 
     private static final int PROCESS_EXITED = 1;
-    private Handler mMsgHandler = new Handler() {
+    private Handler mMsgHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             if (!isRunning()) {

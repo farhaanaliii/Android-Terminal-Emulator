@@ -23,6 +23,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Rect;
 import android.os.Handler;
+import android.os.Looper;
 import android.util.AttributeSet;
 import android.view.Gravity;
 import android.view.View;
@@ -55,7 +56,7 @@ public class TermViewFlipper extends ViewFlipper implements Iterable<View> {
      */
     private final boolean mbPollForWindowSizeChange = false;
     private static final int SCREEN_CHECK_PERIOD = 1000;
-    private final Handler mHandler = new Handler();
+    private final Handler mHandler = new Handler(Looper.getMainLooper());
     private Runnable mCheckSize = new Runnable() {
             public void run() {
                 adjustChildSize();

@@ -9,6 +9,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.Looper;
 import android.os.Message;
 import android.text.Editable;
 import android.text.method.TextKeyListener;
@@ -249,7 +250,7 @@ public class TermActivity extends Activity
      * Handler which will receive the message from the Telnet connect thread
      * that the connection has been established.
      */
-    Handler mHandler = new Handler() {
+    Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
         public void handleMessage(Message msg) {
             if (msg.what == MSG_CONNECTED) {

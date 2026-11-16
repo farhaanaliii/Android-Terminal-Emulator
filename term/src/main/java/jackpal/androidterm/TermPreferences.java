@@ -16,14 +16,18 @@
 
 package jackpal.androidterm;
 
+import android.content.SharedPreferences;
 import android.os.Bundle;
 
-import androidx.fragment.app.FragmentActivity;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.preference.PreferenceFragmentCompat;
+import androidx.preference.PreferenceManager;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
-public class TermPreferences extends FragmentActivity {
+import jackpal.androidterm.util.ThemeMode;
+
+public class TermPreferences extends AppCompatActivity implements SharedPreferences.OnSharedPreferenceChangeListener {
 
     public static class TermPreferencesFragment extends PreferenceFragmentCompat {
         @Override
@@ -35,13 +39,23 @@ public class TermPreferences extends FragmentActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        ThemeMode.apply(this);
 
         setContentView(R.layout.term_preferences_activity);
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
+        PreferenceManager.getDefaultSharedPreferences(this).registerOnSharedPreferenceChangeListener(this);
+
         if (savedInstanceState == null) {
             getSupportFragmentManager().beginTransaction().replace(R.id.preferences_container, new TermPreferencesFragment()).commit();
+        }
+    }
+
+    @Override
+    public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, String key) {
+        if (ThemeMode.PREF_THEME_MODE.equals(key) || ThemeMode.PREF_DYNAMIC_COLOR.equals(key)) {
+            ThemeMode.apply(this);
         }
     }
 }

@@ -19,7 +19,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
@@ -39,7 +38,7 @@ import java.util.List;
 
 import jackpal.androidterm.R;
 
-public class FSNavigator extends ComponentActivity {
+public class FSNavigator extends androidx.appcompat.app.AppCompatActivity {
     private SharedPreferences shared_prefs;
     private File current_dir;
     private File external_dir;
@@ -63,6 +62,7 @@ public class FSNavigator extends ComponentActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        jackpal.androidterm.util.ThemeMode.apply(this);
         setContentView(R.layout.fsnavigator_activity);
         shared_prefs = PreferenceManager.getDefaultSharedPreferences(this);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);

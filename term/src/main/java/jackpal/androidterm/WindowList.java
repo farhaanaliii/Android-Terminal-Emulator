@@ -27,8 +27,8 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import androidx.activity.ComponentActivity;
 import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -38,7 +38,7 @@ import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.emulatorview.UpdateCallback;
 import jackpal.androidterm.util.SessionList;
 
-public class WindowList extends ComponentActivity {
+public class WindowList extends AppCompatActivity {
     private SessionList sessions;
     private WindowRowsAdapter mRowsAdapter;
     private TermService mTermService;
@@ -59,6 +59,7 @@ public class WindowList extends ComponentActivity {
     @Override
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
+        jackpal.androidterm.util.ThemeMode.apply(this);
 
         setContentView(R.layout.window_list_activity);
         MaterialToolbar toolbar = findViewById(R.id.toolbar);

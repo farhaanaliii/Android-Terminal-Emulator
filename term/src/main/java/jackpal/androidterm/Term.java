@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResult;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -85,7 +84,7 @@ import android.widget.Toast;
  * A terminal emulator activity.
  */
 
-public class Term extends ComponentActivity implements UpdateCallback, SharedPreferences.OnSharedPreferenceChangeListener {
+public class Term extends androidx.appcompat.app.AppCompatActivity implements UpdateCallback, SharedPreferences.OnSharedPreferenceChangeListener {
     /**
      * The ViewFlipper which holds the collection of EmulatorView widgets.
      */
@@ -378,6 +377,7 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
         final SharedPreferences mPrefs = PreferenceManager.getDefaultSharedPreferences(this);
         mSettings = new TermSettings(getResources(), mPrefs);
         mPrefs.registerOnSharedPreferenceChangeListener(this);
+        jackpal.androidterm.util.ThemeMode.apply(this);
 
         Intent broadcast = new Intent(ACTION_PATH_BROADCAST);
         broadcast.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);

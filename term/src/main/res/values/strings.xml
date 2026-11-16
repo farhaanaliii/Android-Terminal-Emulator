@@ -48,6 +48,15 @@
    <string name="session_type_generic">Terminal session</string>
 
    <string name="service_notify_text">Terminal session is running</string>
+   <string name="service_channel_name">Terminal Service</string>
+   <string name="service_channel_description">Shows while terminal sessions are running</string>
+   <string name="service_close_all_windows">Close all windows</string>
+
+   <string name="appearance_preferences">Appearance</string>
+   <string name="title_theme_mode_preference">Theme</string>
+   <string name="summary_theme_mode_preference">Choose the app theme, or follow the system setting</string>
+   <string name="title_dynamic_color_preference">Dynamic colour</string>
+   <string name="summary_dynamic_color_preference">Colour the app chrome from your wallpaper</string>
 
    <string name="process_exit_message">Terminal session finished</string>
 

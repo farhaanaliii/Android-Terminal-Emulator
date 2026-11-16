@@ -18,6 +18,27 @@
         xmlns:android="http://schemas.android.com/apk/res/android">
 
     <PreferenceCategory
+            android:title="@string/appearance_preferences"
+            android:key="appearance">
+
+        <ListPreference
+                android:key="theme_mode"
+                android:defaultValue="system"
+                android:title="@string/title_theme_mode_preference"
+                android:summary="@string/summary_theme_mode_preference"
+                android:entries="@array/entries_theme_mode_preference"
+                android:entryValues="@array/entryvalues_theme_mode_preference"
+                android:dialogTitle="@string/title_theme_mode_preference" />
+
+        <SwitchPreference
+                android:key="dynamic_color"
+                android:defaultValue="false"
+                android:title="@string/title_dynamic_color_preference"
+                android:summary="@string/summary_dynamic_color_preference" />
+
+    </PreferenceCategory>
+
+    <PreferenceCategory
             android:title="@string/screen_preferences"
             android:key="screen">
 

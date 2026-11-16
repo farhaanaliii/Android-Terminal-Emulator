@@ -64,10 +64,17 @@ public class TermService extends Service implements TermSession.FinishCallback
     /* This should be @Override if building with API Level >=5 */
     public int onStartCommand(Intent intent, int flags, int startId) {
         if (intent != null && ACTION_STOP_TERM.equals(intent.getAction())) {
+            finishAllSessions();
             stopSelf();
             return START_NOT_STICKY;
         }
         return START_STICKY;
+    }
+
+    private void finishAllSessions() {
+        for (TermSession session : new java.util.ArrayList<>(mTermSessions)) {
+            session.finish();
+        }
     }
 
     @Override

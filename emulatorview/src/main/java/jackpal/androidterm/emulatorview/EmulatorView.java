@@ -16,8 +16,6 @@
 
 package jackpal.androidterm.emulatorview;
 
-import jackpal.androidterm.emulatorview.compat.ClipboardManagerCompat;
-import jackpal.androidterm.emulatorview.compat.ClipboardManagerCompatFactory;
 import jackpal.androidterm.emulatorview.compat.KeycodeConstants;
 import jackpal.androidterm.emulatorview.compat.Patterns;
 
@@ -25,6 +23,8 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.Hashtable;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
@@ -1253,9 +1253,8 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             mSelX2 = maxx;
             mSelY2 = maxy;
             if (action == MotionEvent.ACTION_UP) {
-                ClipboardManagerCompat clip = ClipboardManagerCompatFactory
-                        .getManager(getContext().getApplicationContext());
-                clip.setText(getSelectedText().trim());
+                ClipboardManager clip = (ClipboardManager) getContext().getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                clip.setPrimaryClip(ClipData.newPlainText("simple text", getSelectedText().trim()));
                 toggleSelectingText();
             }
             invalidate();

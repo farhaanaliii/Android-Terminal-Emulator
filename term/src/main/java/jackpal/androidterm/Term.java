@@ -24,8 +24,6 @@ import jackpal.androidterm.compat.MenuItemCompat;
 import jackpal.androidterm.emulatorview.EmulatorView;
 import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.emulatorview.UpdateCallback;
-import jackpal.androidterm.emulatorview.compat.ClipboardManagerCompat;
-import jackpal.androidterm.emulatorview.compat.ClipboardManagerCompatFactory;
 import jackpal.androidterm.emulatorview.compat.KeycodeConstants;
 import jackpal.androidterm.util.SessionList;
 import jackpal.androidterm.util.TermSettings;
@@ -40,6 +38,9 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ClipData;
+import android.content.ClipDescription;
+import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -957,12 +958,8 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
     }
 
     private boolean canPaste() {
-        ClipboardManagerCompat clip = ClipboardManagerCompatFactory
-                .getManager(getApplicationContext());
-        if (clip.hasText()) {
-            return true;
-        }
-        return false;
+        ClipboardManager clip = (ClipboardManager) getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        return clip.hasPrimaryClip() && clip.getPrimaryClipDescription().hasMimeType(ClipDescription.MIMETYPE_TEXT_PLAIN);
     }
 
     private void doPreferences() {
@@ -1007,18 +1004,16 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
     }
 
     private void doCopyAll() {
-        ClipboardManagerCompat clip = ClipboardManagerCompatFactory
-                .getManager(getApplicationContext());
-        clip.setText(getCurrentTermSession().getTranscriptText().trim());
+        ClipboardManager clip = (ClipboardManager) getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        clip.setPrimaryClip(ClipData.newPlainText("simple text", getCurrentTermSession().getTranscriptText().trim()));
     }
 
     private void doPaste() {
         if (!canPaste()) {
             return;
         }
-        ClipboardManagerCompat clip = ClipboardManagerCompatFactory
-                .getManager(getApplicationContext());
-        CharSequence paste = clip.getText();
+        ClipboardManager clip = (ClipboardManager) getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+        CharSequence paste = clip.getPrimaryClip().getItemAt(0).getText();
         getCurrentTermSession().write(paste.toString());
     }
 

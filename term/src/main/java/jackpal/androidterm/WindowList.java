@@ -16,59 +16,35 @@
 
 package jackpal.androidterm;
 
-import android.app.ListActivity;
 import android.content.ComponentName;
-import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.util.AttributeSet;
 import android.util.Log;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.widget.ImageView;
-import android.widget.ListView;
+import android.view.ViewGroup;
+import android.widget.TextView;
+
+import androidx.activity.ComponentActivity;
+import androidx.annotation.NonNull;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.appbar.MaterialToolbar;
 
+import jackpal.androidterm.emulatorview.TermSession;
+import jackpal.androidterm.emulatorview.UpdateCallback;
 import jackpal.androidterm.util.SessionList;
 
-public class WindowList extends ListActivity {
+public class WindowList extends ComponentActivity {
     private SessionList sessions;
-    private WindowListAdapter mWindowListAdapter;
+    private WindowRowsAdapter mRowsAdapter;
     private TermService mTermService;
+    private TextView mEmptyView;
 
-    /**
-     * View which isn't automatically in the pressed state if its parent is
-     * pressed.  This allows the window's entry to be pressed without the close
-     * button being triggered.
-     * Idea and code shamelessly borrowed from the Android browser's tabs list.
-     *
-     * Used by layout xml.
-     */
-    public static class CloseButton extends ImageView {
-        public CloseButton(Context context) {
-            super(context);
-        }
-
-        public CloseButton(Context context, AttributeSet attrs) {
-            super(context, attrs);
-        }
-
-        public CloseButton(Context context, AttributeSet attrs, int style) {
-            super(context, attrs, style);
-        }
-
-        @Override
-        public void setPressed(boolean pressed) {
-            if (pressed && ((View) getParent()).isPressed()) {
-                return;
-            }
-            super.setPressed(pressed);
-        }
-    }
-
-    private ServiceConnection mTSConnection = new ServiceConnection() {
+    private final ServiceConnection mTSConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
             TermService.TSBinder binder = (TermService.TSBinder) service;
             mTermService = binder.getService();
@@ -88,9 +64,11 @@ public class WindowList extends ListActivity {
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 
-        ListView listView = getListView();
-        View newWindow = getLayoutInflater().inflate(R.layout.window_list_new_window, listView, false);
-        listView.addHeaderView(newWindow, null, true);
+        mEmptyView = findViewById(R.id.window_list_empty);
+        RecyclerView recycler = findViewById(R.id.window_list_recycler);
+        recycler.setLayoutManager(new LinearLayoutManager(this));
+        mRowsAdapter = new WindowRowsAdapter();
+        recycler.setAdapter(mRowsAdapter);
 
         setResult(RESULT_CANCELED);
     }
@@ -109,37 +87,129 @@ public class WindowList extends ListActivity {
     protected void onPause() {
         super.onPause();
 
-        WindowListAdapter adapter = mWindowListAdapter;
         if (sessions != null) {
-            sessions.removeCallback(adapter);
-            sessions.removeTitleChangedListener(adapter);
+            sessions.removeCallback(mRowsAdapter);
+            sessions.removeTitleChangedListener(mRowsAdapter);
         }
-        if (adapter != null) {
-            adapter.setSessions(null);
-        }
+        mRowsAdapter.setSessions(null);
         unbindService(mTSConnection);
     }
 
     private void populateList() {
         sessions = mTermService.getSessions();
-        WindowListAdapter adapter = mWindowListAdapter;
-
-        if (adapter == null) {
-            adapter = new WindowListAdapter(sessions);
-            setListAdapter(adapter);
-            mWindowListAdapter = adapter;
-        } else {
-            adapter.setSessions(sessions);
-        }
-        sessions.addCallback(adapter);
-        sessions.addTitleChangedListener(adapter);
+        mRowsAdapter.setSessions(sessions);
+        sessions.addCallback(mRowsAdapter);
+        sessions.addTitleChangedListener(mRowsAdapter);
     }
 
-    @Override
-    protected void onListItemClick(ListView l, View v, int position, long id) {
+    private void selectWindow(int windowId) {
         Intent data = new Intent();
-        data.putExtra(Term.EXTRA_WINDOW_ID, position-1);
+        data.putExtra(Term.EXTRA_WINDOW_ID, windowId);
         setResult(RESULT_OK, data);
         finish();
+    }
+
+    private void updateEmptyVisibility() {
+        boolean empty = sessions == null || sessions.size() == 0;
+        mEmptyView.setVisibility(empty ? View.VISIBLE : View.GONE);
+    }
+
+    private class WindowRowsAdapter extends RecyclerView.Adapter<RecyclerView.ViewHolder> implements UpdateCallback {
+        private static final int TYPE_NEW_WINDOW = 0;
+        private static final int TYPE_WINDOW = 1;
+
+        private SessionList mSessions;
+
+        void setSessions(SessionList sessions) {
+            mSessions = sessions;
+            notifyDataSetChanged();
+            updateEmptyVisibility();
+        }
+
+        @Override
+        public int getItemViewType(int position) {
+            return position == 0 ? TYPE_NEW_WINDOW : TYPE_WINDOW;
+        }
+
+        @Override
+        public int getItemCount() {
+            return 1 + (mSessions == null ? 0 : mSessions.size());
+        }
+
+        @NonNull
+        @Override
+        public RecyclerView.ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+            if (viewType == TYPE_NEW_WINDOW) {
+                return new NewWindowHolder(inflater.inflate(R.layout.window_list_new_window, parent, false));
+            }
+            return new WindowHolder(inflater.inflate(R.layout.window_list_item, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull RecyclerView.ViewHolder holder, int position) {
+            if (holder instanceof WindowHolder) {
+                ((WindowHolder) holder).bind(position - 1);
+            }
+        }
+
+        @Override
+        public void onUpdate() {
+            notifyDataSetChanged();
+            updateEmptyVisibility();
+        }
+
+        private String getSessionTitle(int position, String defaultTitle) {
+            TermSession session = mSessions.get(position);
+            if (session instanceof GenericTermSession) {
+                return ((GenericTermSession) session).getTitle(defaultTitle);
+            }
+            return defaultTitle;
+        }
+
+        private int getSessionTypeString(TermSession session) {
+            if (session instanceof ShellTermSession) {
+                return R.string.session_type_shell;
+            } else if (session instanceof BoundSession) {
+                return R.string.session_type_app;
+            }
+            return R.string.session_type_generic;
+        }
+
+        private class NewWindowHolder extends RecyclerView.ViewHolder {
+            NewWindowHolder(View itemView) {
+                super(itemView);
+                itemView.setOnClickListener(v -> selectWindow(-1));
+            }
+        }
+
+        private class WindowHolder extends RecyclerView.ViewHolder {
+            private final TextView label;
+            private final TextView subtitle;
+            private final View close;
+
+            WindowHolder(View itemView) {
+                super(itemView);
+                label = itemView.findViewById(R.id.window_list_label);
+                subtitle = itemView.findViewById(R.id.window_list_subtitle);
+                close = itemView.findViewById(R.id.window_list_close);
+                itemView.setOnClickListener(v -> selectWindow(getBindingAdapterPosition() - 1));
+                close.setOnClickListener(v -> {
+                    int position = getBindingAdapterPosition() - 1;
+                    TermSession session = mSessions.remove(position);
+                    if (session != null) {
+                        session.finish();
+                        notifyDataSetChanged();
+                        updateEmptyVisibility();
+                    }
+                });
+            }
+
+            void bind(int position) {
+                String defaultTitle = getString(R.string.window_title, position + 1);
+                label.setText(getSessionTitle(position, defaultTitle));
+                subtitle.setText(getSessionTypeString(mSessions.get(position)));
+            }
+        }
     }
 }

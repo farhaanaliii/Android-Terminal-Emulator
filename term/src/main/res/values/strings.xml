@@ -42,6 +42,10 @@
    <string name="send_fn_key">Send fn key</string>
 
    <string name="window_title">Window %1$d</string>
+   <string name="window_list_empty">No windows open</string>
+   <string name="session_type_shell">Shell session</string>
+   <string name="session_type_app">App session</string>
+   <string name="session_type_generic">Terminal session</string>
 
    <string name="service_notify_text">Terminal session is running</string>
 

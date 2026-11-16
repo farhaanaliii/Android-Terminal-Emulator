@@ -15,13 +15,16 @@
  * limitations under the License.
 -->
 
-<menu xmlns:android="http://schemas.android.com/apk/res/android">
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <item android:id="@+id/menu_new_window"
         android:title="@string/new_window"
-        android:icon="@drawable/ic_menu_add" />
+        android:icon="@drawable/ic_menu_add"
+        app:showAsAction="always" />
     <item android:id="@+id/menu_close_window"
         android:title="@string/close_window"
-        android:icon="@drawable/ic_menu_close_clear_cancel" />
+        android:icon="@drawable/ic_menu_close_clear_cancel"
+        app:showAsAction="ifRoom" />
     <item android:id="@+id/menu_window_list"
         android:title="@string/window_list"
         android:icon="@drawable/ic_menu_windows" />

@@ -25,13 +25,12 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.AttributeSet;
 import android.util.Log;
-import android.view.MenuItem;
 import android.view.View;
 import android.widget.ImageView;
 import android.widget.ListView;
 
-import jackpal.androidterm.compat.ActionBarCompat;
-import jackpal.androidterm.compat.ActivityCompat;
+import com.google.android.material.appbar.MaterialToolbar;
+
 import jackpal.androidterm.util.SessionList;
 
 public class WindowList extends ListActivity {
@@ -85,17 +84,15 @@ public class WindowList extends ListActivity {
     public void onCreate(Bundle icicle) {
         super.onCreate(icicle);
 
+        setContentView(R.layout.window_list_activity);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> finish());
+
         ListView listView = getListView();
         View newWindow = getLayoutInflater().inflate(R.layout.window_list_new_window, listView, false);
         listView.addHeaderView(newWindow, null, true);
 
         setResult(RESULT_CANCELED);
-
-        // Display up indicator on action bar home button
-        ActionBarCompat bar = ActivityCompat.getActionBar(this);
-        if (bar != null) {
-            bar.setDisplayOptions(ActionBarCompat.DISPLAY_HOME_AS_UP, ActionBarCompat.DISPLAY_HOME_AS_UP);
-        }
     }
 
     @Override
@@ -144,17 +141,5 @@ public class WindowList extends ListActivity {
         data.putExtra(Term.EXTRA_WINDOW_ID, position-1);
         setResult(RESULT_OK, data);
         finish();
-    }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-        case ActionBarCompat.ID_HOME:
-            // Action bar home button selected
-            finish();
-            return true;
-        default:
-            return super.onOptionsItemSelected(item);
-        }
     }
 }

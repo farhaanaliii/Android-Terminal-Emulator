@@ -16,12 +16,12 @@
 
 package jackpal.androidterm;
 
-import jackpal.androidterm.compat.ActionBarCompat;
 import android.os.Bundle;
-import android.view.MenuItem;
 
 import androidx.fragment.app.FragmentActivity;
 import androidx.preference.PreferenceFragmentCompat;
+
+import com.google.android.material.appbar.MaterialToolbar;
 
 public class TermPreferences extends FragmentActivity {
 
@@ -36,20 +36,12 @@ public class TermPreferences extends FragmentActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new TermPreferencesFragment()).commit();
-        }
-    }
+        setContentView(R.layout.term_preferences_activity);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar);
+        toolbar.setNavigationOnClickListener(v -> finish());
 
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-        case ActionBarCompat.ID_HOME:
-            // Action bar home button selected
-            finish();
-            return true;
-        default:
-            return super.onOptionsItemSelected(item);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction().replace(R.id.preferences_container, new TermPreferencesFragment()).commit();
         }
     }
 }

@@ -73,17 +73,15 @@ public class TermActivity extends Activity
         /* Sends the content of the text entry box to the terminal, without
            sending a carriage return afterwards */
         Button sendButton = findViewById(R.id.term_entry_send);
-        sendButton.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) {
-                // Don't try to send something if we're not connected yet
-                TermSession session = mSession;
-                if (mSession == null) {
-                    return;
-                }
-                Editable e = (Editable) mEntry.getText();
-                session.write(e.toString());
-                TextKeyListener.clear(e);
+        sendButton.setOnClickListener(v -> {
+            // Don't try to send something if we're not connected yet
+            TermSession session = mSession;
+            if (mSession == null) {
+                return;
             }
+            Editable e = (Editable) mEntry.getText();
+            session.write(e.toString());
+            TextKeyListener.clear(e);
         });
 
         /**

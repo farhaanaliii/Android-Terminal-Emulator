@@ -2,7 +2,6 @@ package jackpal.androidterm.sample.intents;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import android.content.Intent;
@@ -16,18 +15,15 @@ public class IntentSampleActivity extends ComponentActivity
 {
     private String mHandle;
 
-    private final ActivityResultLauncher<Intent> mWindowHandleLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            Intent data = result.getData();
-            if (result.getResultCode() != RESULT_OK) {
-                return;
-            }
-            if (data != null) {
-                mHandle = data.getStringExtra("jackpal.androidterm.window_handle");
-                ((Button) findViewById(R.id.runScriptSaveWindow)).setText(
-                        R.string.run_script_existing_window);
-            }
+    private final ActivityResultLauncher<Intent> mWindowHandleLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        Intent data = result.getData();
+        if (result.getResultCode() != RESULT_OK) {
+            return;
+        }
+        if (data != null) {
+            mHandle = data.getStringExtra("jackpal.androidterm.window_handle");
+            ((Button) findViewById(R.id.runScriptSaveWindow)).setText(
+                    R.string.run_script_existing_window);
         }
     });
 

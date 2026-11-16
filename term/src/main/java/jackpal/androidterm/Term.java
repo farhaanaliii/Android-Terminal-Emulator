@@ -35,7 +35,6 @@ import java.util.Locale;
 
 import androidx.activity.ComponentActivity;
 import androidx.activity.result.ActivityResult;
-import androidx.activity.result.ActivityResultCallback;
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import android.app.AlertDialog;
@@ -46,7 +45,6 @@ import android.content.ClipDescription;
 import android.content.ClipboardManager;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
@@ -322,34 +320,28 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
 
     private Handler mHandler = new Handler(Looper.getMainLooper());
 
-    private final ActivityResultLauncher<String> mNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
-        @Override
-        public void onActivityResult(Boolean granted) {
-            // If denied, the service notification simply stays hidden; the
-            // system keeps the foreground service running regardless.
-        }
+    private final ActivityResultLauncher<String> mNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), granted -> {
+        // If denied, the service notification simply stays hidden; the
+        // system keeps the foreground service running regardless.
     });
 
-    private final ActivityResultLauncher<Intent> mChooseWindowLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
-        @Override
-        public void onActivityResult(ActivityResult result) {
-            Intent data = result.getData();
-            if (result.getResultCode() == RESULT_OK && data != null) {
-                int position = data.getIntExtra(EXTRA_WINDOW_ID, -2);
-                if (position >= 0) {
-                    // Switch windows after session list is in sync, not here
-                    onResumeSelectWindow = position;
-                } else if (position == -1) {
-                    doCreateNewWindow();
-                    onResumeSelectWindow = mTermSessions.size() - 1;
-                }
-            } else {
-                // Close the activity if user closed all sessions
-                // TODO the left path will be invoked when nothing happened, but this Activity was destroyed!
-                if (mTermSessions == null || mTermSessions.size() == 0) {
-                    mStopServiceOnFinish = true;
-                    finish();
-                }
+    private final ActivityResultLauncher<Intent> mChooseWindowLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+        Intent data = result.getData();
+        if (result.getResultCode() == RESULT_OK && data != null) {
+            int position = data.getIntExtra(EXTRA_WINDOW_ID, -2);
+            if (position >= 0) {
+                // Switch windows after session list is in sync, not here
+                onResumeSelectWindow = position;
+            } else if (position == -1) {
+                doCreateNewWindow();
+                onResumeSelectWindow = mTermSessions.size() - 1;
+            }
+        } else {
+            // Close the activity if user closed all sessions
+            // TODO the left path will be invoked when nothing happened, but this Activity was destroyed!
+            if (mTermSessions == null || mTermSessions.size() == 0) {
+                mStopServiceOnFinish = true;
+                finish();
             }
         }
     });
@@ -743,16 +735,10 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
         final AlertDialog.Builder b = new AlertDialog.Builder(this);
         b.setIcon(android.R.drawable.ic_dialog_alert);
         b.setMessage(R.string.confirm_window_close_message);
-        final Runnable closeWindow = new Runnable() {
-            public void run() {
-                doCloseWindow();
-            }
-        };
-        b.setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-           public void onClick(DialogInterface dialog, int id) {
-               dialog.dismiss();
-               mHandler.post(closeWindow);
-           }
+        final Runnable closeWindow = () -> doCloseWindow();
+        b.setPositiveButton(android.R.string.yes, (dialog, id) -> {
+            dialog.dismiss();
+            mHandler.post(closeWindow);
         });
         b.setNegativeButton(android.R.string.no, null);
         b.show();

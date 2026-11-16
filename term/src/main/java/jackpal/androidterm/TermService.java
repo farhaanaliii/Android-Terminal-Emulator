@@ -182,9 +182,7 @@ public class TermService extends Service implements TermSession.FinishCallback
                     if (!TextUtils.isEmpty(label)) {
                         final String niceName = label.toString();
 
-                        new Handler(Looper.getMainLooper()).post(new Runnable() {
-                            @Override
-                            public void run() {
+                        new Handler(Looper.getMainLooper()).post(() -> {
                                 GenericTermSession session = null;
                                 try {
                                     final TermSettings settings = new TermSettings(getResources(),
@@ -206,7 +204,6 @@ public class TermService extends Service implements TermSession.FinishCallback
                                     if (session != null)
                                         session.finish();
                                 }
-                            }
                         });
 
                         return result.getIntentSender();

@@ -487,10 +487,8 @@ public class      FSNavigator
     setContentView(contentView);
   }
   //////////////////////////////////////////////////////////////////////
-  java.util.Comparator<String> stringSortComparator=new java.util.Comparator<String>()
-  {
-    public int compare(String a, String b) {return(a.toLowerCase().compareTo(b.toLowerCase()));}
-  };
+  java.util.Comparator<String> stringSortComparator=
+    (a, b) -> a.toLowerCase().compareTo(b.toLowerCase());
   //////////////////////////////////////////////////////////////////////
   String getCanonicalPath(String path)
   {

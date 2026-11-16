@@ -114,8 +114,6 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
 
     private PowerManager.WakeLock mWakeLock;
     private WifiManager.WifiLock mWifiLock;
-    // Available on API 12 and later
-    private static final int WIFI_MODE_FULL_HIGH_PERF = 3;
 
     private static final String ACTION_PATH_BROADCAST = "jackpal.androidterm.broadcast.APPEND_TO_PATH";
     private static final String ACTION_PATH_PREPEND_BROADCAST = "jackpal.androidterm.broadcast.PREPEND_TO_PATH";
@@ -355,7 +353,7 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TermDebug.LOG_TAG);
         WifiManager wm = (WifiManager)getSystemService(Context.WIFI_SERVICE);
-        mWifiLock = wm.createWifiLock(WIFI_MODE_FULL_HIGH_PERF, TermDebug.LOG_TAG);
+        mWifiLock = wm.createWifiLock(WifiManager.WIFI_MODE_FULL_LOW_LATENCY, TermDebug.LOG_TAG);
 
         ActionBarCompat actionBar = ActivityCompat.getActionBar(this);
         if (actionBar != null) {

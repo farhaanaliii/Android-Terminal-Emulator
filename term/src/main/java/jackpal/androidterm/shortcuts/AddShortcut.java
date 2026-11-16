@@ -116,7 +116,7 @@ public class      AddShortcut
                 {
                   String lastPath=SP.getString("lastPath", null);
                   File get= (lastPath==null)
-                            ?Environment.getExternalStorageDirectory()
+                            ?context.getExternalFilesDir(null)
                             :new File(lastPath).getParentFile();
                     Intent pickerIntent=new Intent();
                     if(SP.getBoolean("useInternalScriptFinder", false))

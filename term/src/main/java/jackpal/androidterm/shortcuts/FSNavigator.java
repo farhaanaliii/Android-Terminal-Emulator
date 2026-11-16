@@ -57,7 +57,7 @@ public class      FSNavigator
     getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 
     Intent intent= getIntent();
-    extSdCardFile=Environment.getExternalStorageDirectory();
+    extSdCardFile=context.getExternalFilesDir(null);
     extSdCard=getCanonicalPath(extSdCardFile);
     Uri    uri=intent.getData();
     String path=uri==null?null:uri.getPath();
@@ -114,7 +114,7 @@ public class      FSNavigator
   {
     if(goTo.startsWith(extSdCard))
     {
-      String s=Environment.getExternalStorageState();
+      String s=Environment.getExternalStorageState(extSdCardFile);
       if(s.equals(Environment.MEDIA_MOUNTED)
       || s.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
       )

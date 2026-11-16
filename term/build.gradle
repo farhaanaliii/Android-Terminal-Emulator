@@ -42,4 +42,5 @@ dependencies {
     implementation project(':emulatorview')
     implementation project(':libtermexec')
     implementation 'androidx.activity:activity:1.9.3'
+    implementation 'androidx.preference:preference:1.2.1'
 }

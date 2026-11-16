@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut
+        android:shortcutId="new_window"
+        android:enabled="true"
+        android:icon="@drawable/ic_terminal"
+        android:shortcutShortLabel="@string/new_window"
+        android:shortcutLongLabel="@string/new_window">
+        <intent
+            android:action="jackpal.androidterm.OPEN_NEW_WINDOW"
+            android:targetPackage="jackpal.androidterm"
+            android:targetClass="jackpal.androidterm.RemoteInterface" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+    <shortcut
+        android:shortcutId="settings"
+        android:enabled="true"
+        android:icon="@drawable/ic_menu_preferences"
+        android:shortcutShortLabel="@string/preferences"
+        android:shortcutLongLabel="@string/preferences">
+        <intent
+            android:action="android.intent.action.VIEW"
+            android:targetPackage="jackpal.androidterm"
+            android:targetClass="jackpal.androidterm.TermPreferences" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+</shortcuts>

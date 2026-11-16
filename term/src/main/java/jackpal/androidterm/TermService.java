@@ -36,7 +36,6 @@ import android.app.PendingIntent;
 
 import jackpal.androidterm.emulatorview.TermSession;
 
-import jackpal.androidterm.compat.ServiceForegroundCompat;
 import jackpal.androidterm.libtermexec.v1.*;
 import jackpal.androidterm.util.SessionList;
 import jackpal.androidterm.util.TermSettings;
@@ -49,7 +48,6 @@ public class TermService extends Service implements TermSession.FinishCallback
     private static final int COMPAT_START_STICKY = 1;
 
     private static final int RUNNING_NOTIFICATION = 1;
-    private ServiceForegroundCompat compat;
 
     private SessionList mTermSessions;
 

@@ -14,18 +14,15 @@
      limitations under the License.
 -->
 
-<!-- The base theme. This theme is only used for API level 1..10.
- -->
-
 <resources>
-    <style name="Theme" parent="@android:style/Theme.Light">
-        <item name="android:windowNoTitle">true</item>
-        <item name="android:windowFrame">@null</item>
-        <item name="android:windowContentOverlay">@null</item>
+    <!-- The base theme, used for all activities. Chrome (toolbars,
+         dialogs, menus) follows Material 3; the terminal view keeps its
+         own colour scheme from the app preferences.
+     -->
+    <style name="Theme" parent="Theme.Material3.DayNight.NoActionBar">
     </style>
 
     <style name="Theme.TermPreferences" parent="@style/Theme">
-        <item name="preferenceTheme">@style/PreferenceThemeOverlay</item>
+        <item name="preferenceTheme">@style/PreferenceThemeOverlay.v14.Material</item>
     </style>
 </resources>
-

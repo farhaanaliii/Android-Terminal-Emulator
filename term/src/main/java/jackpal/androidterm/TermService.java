@@ -45,6 +45,7 @@ import java.util.UUID;
 public class TermService extends Service implements TermSession.FinishCallback
 {
     private static final int RUNNING_NOTIFICATION = 1;
+    public static final String ACTION_STOP_TERM = "jackpal.androidterm.action.STOP_TERM";
 
     private SessionList mTermSessions;
 
@@ -62,6 +63,10 @@ public class TermService extends Service implements TermSession.FinishCallback
 
     /* This should be @Override if building with API Level >=5 */
     public int onStartCommand(Intent intent, int flags, int startId) {
+        if (intent != null && ACTION_STOP_TERM.equals(intent.getAction())) {
+            stopSelf();
+            return START_NOT_STICKY;
+        }
         return START_STICKY;
     }
 
@@ -92,7 +97,8 @@ public class TermService extends Service implements TermSession.FinishCallback
 
         String channelId = "term_service";
         NotificationChannel channel = new NotificationChannel(channelId,
-                "Terminal Service", NotificationManager.IMPORTANCE_LOW);
+                getText(R.string.service_channel_name), NotificationManager.IMPORTANCE_LOW);
+        channel.setDescription(getString(R.string.service_channel_description));
         NotificationManager nm = (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         nm.createNotificationChannel(channel);
 
@@ -100,6 +106,9 @@ public class TermService extends Service implements TermSession.FinishCallback
         notifyIntent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         int piFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         PendingIntent pendingIntent = PendingIntent.getActivity(this, 0, notifyIntent, piFlags);
+
+        Intent stopIntent = new Intent(this, TermService.class).setAction(ACTION_STOP_TERM);
+        PendingIntent stopPendingIntent = PendingIntent.getService(this, 1, stopIntent, piFlags);
 
         Notification notification;
         Notification.Builder builder = new Notification.Builder(this, channelId);
@@ -109,6 +118,7 @@ public class TermService extends Service implements TermSession.FinishCallback
                 .setContentText(getText(R.string.service_notify_text))
                 .setSmallIcon(R.drawable.ic_stat_service_notification_icon)
                 .setContentIntent(pendingIntent)
+                .addAction(new Notification.Action.Builder(R.drawable.ic_menu_close_clear_cancel, getText(R.string.service_close_all_windows), stopPendingIntent).build())
                 .setOngoing(true)
                 .build();
 

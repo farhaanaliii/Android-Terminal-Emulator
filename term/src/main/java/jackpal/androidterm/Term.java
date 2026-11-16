@@ -139,9 +139,6 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
             }
         }
     };
-    // Available on API 12 and later
-    private static final int FLAG_INCLUDE_STOPPED_PACKAGES = 0x20;
-
     private TermService mTermService;
     private ServiceConnection mTSConnection = new ServiceConnection() {
         public void onServiceConnected(ComponentName className, IBinder service) {
@@ -362,7 +359,7 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
         mPrefs.registerOnSharedPreferenceChangeListener(this);
 
         Intent broadcast = new Intent(ACTION_PATH_BROADCAST);
-        broadcast.addFlags(FLAG_INCLUDE_STOPPED_PACKAGES);
+        broadcast.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
         mPendingPathBroadcasts++;
         sendOrderedBroadcast(broadcast, PERMISSION_PATH_BROADCAST, mPathReceiver, null, RESULT_OK, null, null);
 

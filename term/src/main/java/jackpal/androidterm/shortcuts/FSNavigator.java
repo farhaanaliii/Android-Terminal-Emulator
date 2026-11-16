@@ -67,9 +67,9 @@ public class      FSNavigator
     titleView=           directoryEntry("..");
     pathEntryView=       fileEntry(null);
     contentView=         makeContentView();
-    cachedDirectoryView= new HashMap<Integer, LinearLayout>();
-    cachedFileView=      new HashMap<Integer, LinearLayout>();
-    cachedDividerView=   new HashMap<Integer, TextView>();
+    cachedDirectoryView= new HashMap<>();
+    cachedFileView=      new HashMap<>();
+    cachedDividerView=   new HashMap<>();
   }
   ////////////////////////////////////////////////////////////
   public void onPause()

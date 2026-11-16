@@ -92,7 +92,7 @@ public class TermViewFlipper extends ViewFlipper implements Iterable<View> {
 
     private void commonConstructor(Context context) {
         this.context = context;
-        callbacks = new LinkedList<UpdateCallback>();
+        callbacks = new LinkedList<>();
 
         updateVisibleRect();
         Rect visible = mVisibleRect;

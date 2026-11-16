@@ -103,7 +103,10 @@ public class      FSNavigator
       default: return;
     }
     SP.edit().putInt("theme", theme).commit();
-    startActivityForResult(getIntent().addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT), -1);
+    // FLAG_ACTIVITY_FORWARD_RESULT forwards our caller's result contract to
+    // the relaunched instance; no result is ever delivered back to this one,
+    // so a plain startActivity preserves the behaviour exactly.
+    startActivity(getIntent().addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
     finish();
   }
   ////////////////////////////////////////////////////////////

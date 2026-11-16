@@ -39,7 +39,7 @@ public class LaunchActivity extends Activity
                 startActivity(intent);
             }});
 
-        final EditText hostEdit = (EditText) findViewById(R.id.hostname);
+        final EditText hostEdit = findViewById(R.id.hostname);
         addClickListener(R.id.launchTelnet, new OnClickListener() {
             public void onClick(View v) {
                 Intent intent = new Intent(context, TermActivity.class);

@@ -389,7 +389,7 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
         mActionBarMode = mSettings.actionBarMode();
 
         setContentView(R.layout.term_activity);
-        mViewFlipper = (TermViewFlipper) findViewById(VIEW_FLIPPER);
+        mViewFlipper = findViewById(VIEW_FLIPPER);
 
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);
         mWakeLock = pm.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, TermDebug.LOG_TAG);

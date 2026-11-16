@@ -77,7 +77,7 @@ public class WindowListAdapter extends BaseAdapter implements UpdateCallback {
         View child = act.getLayoutInflater().inflate(R.layout.window_list_item, parent, false);
         View close = child.findViewById(R.id.window_list_close);
 
-        TextView label = (TextView) child.findViewById(R.id.window_list_label);
+        TextView label = child.findViewById(R.id.window_list_label);
         String defaultTitle = act.getString(R.string.window_title, position+1);
         label.setText(getSessionTitle(position, defaultTitle));
 

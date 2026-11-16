@@ -46,7 +46,7 @@ public class IntentSampleActivity extends ComponentActivity
                 startActivity(intent);
             }});
 
-        final EditText script = (EditText) findViewById(R.id.script);
+        final EditText script = findViewById(R.id.script);
         script.setText(getString(R.string.default_script));
         addClickListener(R.id.runScript, new OnClickListener() {
             public void onClick(View v) {

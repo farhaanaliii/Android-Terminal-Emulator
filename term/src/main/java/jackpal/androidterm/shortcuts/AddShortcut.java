@@ -24,7 +24,7 @@ import jackpal.androidterm.R;
 import jackpal.androidterm.RemoteInterface;
 import jackpal.androidterm.RunShortcut;
 import jackpal.androidterm.TermDebug;
-import jackpal.androidterm.compat.AlertDialogCompat;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
 import jackpal.androidterm.util.ShortcutEncryption;
 
 import java.io.            File;
@@ -80,8 +80,7 @@ public class      AddShortcut
   void makeShortcut()
   {
     if(path==null) path="";
-    final AlertDialogCompat.Builder alert =
-        AlertDialogCompat.newInstanceBuilder(context, AlertDialogCompat.THEME_HOLO_DARK);
+    final MaterialAlertDialogBuilder alert = new MaterialAlertDialogBuilder(context);
     LinearLayout   lv=new LinearLayout(context);
                    lv.setOrientation(LinearLayout.VERTICAL);
     for(int i=0, n=et.length; i<n; i++) {et[i]=new EditText(context); et[i].setSingleLine(true);}

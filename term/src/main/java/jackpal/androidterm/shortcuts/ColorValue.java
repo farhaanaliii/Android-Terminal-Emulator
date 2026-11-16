@@ -2,8 +2,6 @@
 package jackpal.androidterm.shortcuts;
 
 import jackpal.androidterm.R;
-import jackpal.androidterm.compat.AlertDialogCompat;
-import android.app.        AlertDialog;
 import android.content.    Context;
 import android.content.    DialogInterface;
 import android.graphics.   Typeface;
@@ -13,9 +11,10 @@ import android.widget.     CompoundButton;
 import android.widget.     ImageView;
 import android.widget.     LinearLayout;
 import android.widget.     ScrollView;
-import android.widget.     SeekBar;
 import android.widget.     TextView;
 import android.widget.     EditText;
+import com.google.android.material.dialog.MaterialAlertDialogBuilder;
+import com.google.android.material.slider.Slider;
 
 //////////////////////////////////////////////////////////////////////
 public class      ColorValue
@@ -25,7 +24,9 @@ public class      ColorValue
   private       EditText            value;
   private final int[]               color=      {0xFF, 0, 0, 0};
   private       boolean             started=    false;
-  private       AlertDialogCompat.Builder builder;
+  private       MaterialAlertDialogBuilder builder;
+  private       Slider              sliders[];
+  private       TextView            hexWindows[];
   private       boolean             barLock=    false;
   private final boolean[]           locks=      {false, false, false, false};
   private final int                 FP=         LinearLayout.LayoutParams.FILL_PARENT;
@@ -46,7 +47,7 @@ public class      ColorValue
   public void colorValue()
   {
     final int     arraySizes=  4;
-    builder=      AlertDialogCompat.newInstanceBuilder(context, AlertDialogCompat.THEME_HOLO_DARK);
+    builder=      new MaterialAlertDialogBuilder(context);
     LinearLayout  lv=new LinearLayout(context);
                   lv.setOrientation(LinearLayout.VERTICAL);
     String  lab[]={
@@ -74,9 +75,11 @@ public class      ColorValue
                   value.setHint(context.getString(R.string.colorvalue_icon_text_entry_hint));//"Enter icon text");
     lv.addView(vh);
     lv.addView(lt);
-    final SeekBar     sb[]=        new SeekBar[arraySizes+1];
+    sliders=                       new Slider[arraySizes+1];
+    final Slider      sb[]=        sliders;
     final CheckBox    lk[]=        new CheckBox[arraySizes];
     final TextView    hexWindow[]= new TextView[arraySizes];
+    hexWindows=                    hexWindow;
     for(int i=0; i<arraySizes; i++)
     {
       LinearLayout    lh=new LinearLayout(context);
@@ -85,49 +88,26 @@ public class      ColorValue
                       tv.setTypeface(Typeface.MONOSPACE);
                       tv.setText(lab[i]);
                       tv.setTextColor(clr[i]);
-      sb[i]=new SeekBar(context);
-      sb[i].setMax(0xFF);
-      sb[i].setProgress(color[i]);
-      sb[i].setSecondaryProgress(color[i]);
+      sb[i]=new Slider(context);
+      sb[i].setValueFrom(0);
+      sb[i].setValueTo(0xFF);
+      sb[i].setStepSize(1);
+      sb[i].setValue(color[i]);
       sb[i].setTag(i);
-      sb[i].setBackgroundColor(0xFF<<24|(color[i]<<(24-i*8)));
       sb[i].setLayoutParams(new LinearLayout.LayoutParams(WC, WC, 1));
-      sb[i].setOnSeekBarChangeListener(
-        new SeekBar.OnSeekBarChangeListener()
+      sb[i].addOnChangeListener(
+        (slider, value, fromUser) -> doProgressChanged((Integer)slider.getTag(), (int)value, fromUser)
+      );
+      sb[i].addOnSliderTouchListener(
+        new Slider.OnSliderTouchListener()
         {
-          public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
+          public void onStartTrackingTouch(Slider slider)
           {
-            doProgressChanged(seekBar, progress, fromUser);
+            doProgressChanged((Integer)slider.getTag(), (int)slider.getValue(), true);
           }
-          private void doProgressChanged(SeekBar seekBar, int progress, boolean fromUser)
+          public void onStopTrackingTouch(Slider slider)
           {
-            if(fromUser && started)
-            {
-              int  me=(Integer)seekBar.getTag();
-              int  k=(color[0]<<24)|(color[1]<<16)|(color[2]<<8)|color[3];
-              value.setTextColor(k);
-              int  start, end;
-              if(barLock && locks[me])  {start=0;  end=arraySizes-1;}
-              else  start=end=(Integer)seekBar.getTag();
-              for(int  i=start; i<=end; i++)
-              {
-                if(i==me || (barLock && locks[i]))
-                {
-                  color[i]=progress;
-                  toHexWindow(hexWindow[i], color[i]);
-                  sb[i].setBackgroundColor(0xFF<<24|(progress<<(24-i*8)));
-                  sb[i].setProgress(progress);
-                }
-              }
-            }
-          }
-          public void onStartTrackingTouch(SeekBar seekBar)
-          {
-            doProgressChanged(seekBar, seekBar.getProgress(), true);
-          }
-          public void  onStopTrackingTouch(SeekBar seekBar)
-          {
-            doProgressChanged(seekBar, seekBar.getProgress(), true);
+            doProgressChanged((Integer)slider.getTag(), (int)slider.getValue(), true);
           }
         }
       );
@@ -169,6 +149,27 @@ public class      ColorValue
     started=true;
   }
   //////////////////////////////////////////////////////////////////////
+  private void doProgressChanged(int me, int progress, boolean fromUser)
+  {
+    if(fromUser && started)
+    {
+      int  k=(color[0]<<24)|(color[1]<<16)|(color[2]<<8)|color[3];
+      value.setTextColor(k);
+      int  start, end;
+      if(barLock && locks[me])  {start=0;  end=hexWindows.length-1;}
+      else  start=end=me;
+      for(int  i=start; i<=end; i++)
+      {
+        if(i==me || (barLock && locks[i]))
+        {
+          color[i]=progress;
+          toHexWindow(hexWindows[i], color[i]);
+          sliders[i].setValue(progress);
+        }
+      }
+    }
+  }
+  //////////////////////////////////////////////////////////////////////
   public void toHexWindow(TextView tv, int k)
   {
     String  HEX="0123456789ABCDEF";
@@ -191,9 +192,9 @@ public class      ColorValue
   {
     switch(hit)
     {
-      case AlertDialog.BUTTON_NEGATIVE:  //  CANCEL
+      case DialogInterface.BUTTON_NEGATIVE:  //  CANCEL
         return;
-      case AlertDialog.BUTTON_POSITIVE:  //  OK == set
+      case DialogInterface.BUTTON_POSITIVE:  //  OK == set
         imgtext=value.getText().toString();
         result[1]=imgtext;
         imgview.setTag(color);

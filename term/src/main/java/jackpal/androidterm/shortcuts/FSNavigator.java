@@ -6,7 +6,7 @@ import android.content.             SharedPreferences;
 import android.graphics.            Typeface;
 import android.net.                 Uri;
 import android.os.                  Environment;
-import android.preference.          PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.view.                Gravity;
 import android.view.                KeyEvent;
 import android.view.                Menu;

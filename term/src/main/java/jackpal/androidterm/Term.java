@@ -62,7 +62,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.IBinder;
 import android.os.PowerManager;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.ContextMenu;

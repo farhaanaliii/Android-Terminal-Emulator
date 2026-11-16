@@ -25,7 +25,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.*;
 import android.content.Intent;
-import android.preference.PreferenceManager;
+import androidx.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
 import android.app.NotificationChannel;

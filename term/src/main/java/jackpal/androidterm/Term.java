@@ -57,6 +57,7 @@ import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -321,6 +322,14 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
 
     private Handler mHandler = new Handler(Looper.getMainLooper());
 
+    private final ActivityResultLauncher<String> mNotificationPermissionLauncher = registerForActivityResult(new ActivityResultContracts.RequestPermission(), new ActivityResultCallback<Boolean>() {
+        @Override
+        public void onActivityResult(Boolean granted) {
+            // If denied, the service notification simply stays hidden; the
+            // system keeps the foreground service running regardless.
+        }
+    });
+
     private final ActivityResultLauncher<Intent> mChooseWindowLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
         @Override
         public void onActivityResult(ActivityResult result) {
@@ -369,6 +378,10 @@ public class Term extends ComponentActivity implements UpdateCallback, SharedPre
         broadcast.setAction(ACTION_PATH_PREPEND_BROADCAST);
         mPendingPathBroadcasts++;
         sendOrderedBroadcast(broadcast, PERMISSION_PATH_PREPEND_BROADCAST, mPathReceiver, null, RESULT_OK, null, null);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+            mNotificationPermissionLauncher.launch(android.Manifest.permission.POST_NOTIFICATIONS);
+        }
 
         TSIntent = new Intent(this, TermService.class);
         startService(TSIntent);

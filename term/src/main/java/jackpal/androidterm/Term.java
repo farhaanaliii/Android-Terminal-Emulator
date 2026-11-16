@@ -399,6 +399,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         mActionBarMode = mSettings.actionBarMode();
 
         setContentView(R.layout.term_activity);
+        jackpal.androidterm.util.EdgeToEdge.apply(this, findViewById(R.id.term_root));
         mViewFlipper = findViewById(VIEW_FLIPPER);
 
         PowerManager pm = (PowerManager)getSystemService(Context.POWER_SERVICE);

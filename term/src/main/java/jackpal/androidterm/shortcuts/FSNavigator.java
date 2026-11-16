@@ -64,6 +64,7 @@ public class FSNavigator extends androidx.appcompat.app.AppCompatActivity {
         super.onCreate(savedInstanceState);
         jackpal.androidterm.util.ThemeMode.apply(this);
         setContentView(R.layout.fsnavigator_activity);
+        jackpal.androidterm.util.EdgeToEdge.apply(this, findViewById(R.id.fsnav_root));
         shared_prefs = PreferenceManager.getDefaultSharedPreferences(this);
         getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
 

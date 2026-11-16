@@ -42,6 +42,7 @@ public class TermPreferences extends AppCompatActivity implements SharedPreferen
         ThemeMode.apply(this);
 
         setContentView(R.layout.term_preferences_activity);
+        jackpal.androidterm.util.EdgeToEdge.apply(this, findViewById(R.id.prefs_root));
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 

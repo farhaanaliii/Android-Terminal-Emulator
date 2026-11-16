@@ -62,6 +62,7 @@ public class WindowList extends AppCompatActivity {
         jackpal.androidterm.util.ThemeMode.apply(this);
 
         setContentView(R.layout.window_list_activity);
+        jackpal.androidterm.util.EdgeToEdge.apply(this, findViewById(R.id.window_list_root));
         MaterialToolbar toolbar = findViewById(R.id.toolbar);
         toolbar.setNavigationOnClickListener(v -> finish());
 

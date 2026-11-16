@@ -1,540 +1,285 @@
 //From the desk of Frank P. Westlake; public domain.
 package jackpal.androidterm.shortcuts;
 
-import android.content.             Intent;
-import android.content.             SharedPreferences;
-import android.graphics.            Typeface;
-import android.net.                 Uri;
-import android.os.                  Environment;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.net.Uri;
+import android.os.Bundle;
+import android.os.Environment;
+import android.provider.DocumentsContract;
+import android.text.format.DateFormat;
+import android.text.format.Formatter;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.view.ViewGroup;
+import android.view.WindowManager;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
+import androidx.annotation.NonNull;
 import androidx.preference.PreferenceManager;
-import android.view.                Gravity;
-import android.view.                KeyEvent;
-import android.view.                Menu;
-import android.view.                MenuItem;
-import android.view.                View;
-import android.widget.              EditText;
-import android.widget.              HorizontalScrollView;
-import android.widget.              ImageView;
-import android.widget.              LinearLayout;
-import android.widget.              ScrollView;
-import android.widget.              TextView;
-import android.widget.              Toast;
-import java.io.                     File;
-import java.io.                     IOException;
-import java.util.                   HashMap;
-import jackpal.androidterm.         R;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
-public class      FSNavigator
-       extends    android.app.Activity
-{
-  private final int                      ACTION_THEME_SWAP=           0x00000100;
-  private final int                      BUTTON_SIZE=                 150;
-  private android.content.Context        context=                     this;
-  private float                          textLg=                      24;
-  private int                            theme=                       android.R.style.Theme;
-  private SharedPreferences              SP;
-  private File                           cd;
-  private File                           extSdCardFile;
-  private String                         extSdCard;
-  private HashMap<Integer, LinearLayout> cachedFileView;
-  private HashMap<Integer, LinearLayout> cachedDirectoryView;
-  private HashMap<Integer, TextView>     cachedDividerView;
-  private int                            countFileView;
-  private int                            countDirectoryView;
-  private int                            countDividerView;
-  private LinearLayout                   contentView;
-  private LinearLayout                   titleView;
-  private LinearLayout                   pathEntryView;
+import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.textfield.TextInputLayout;
 
-  ////////////////////////////////////////////////////////////
-  public void onCreate(android.os.Bundle savedInstanceState)
-  {
-    super.onCreate(savedInstanceState);
-    setTitle(getString(R.string.fsnavigator_title));//"File Selector");
-    SP=PreferenceManager.getDefaultSharedPreferences(context);
-    theme=SP.getInt("theme", theme);
-    setTheme(theme);
-    getWindow().setSoftInputMode(android.view.WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+import java.io.File;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Date;
+import java.util.List;
 
-    Intent intent= getIntent();
-    extSdCardFile=context.getExternalFilesDir(null);
-    extSdCard=getCanonicalPath(extSdCardFile);
-    Uri    uri=intent.getData();
-    String path=uri==null?null:uri.getPath();
-    if(null == path || null==(chdir(path))) chdir(extSdCard);
-    if(intent.hasExtra("title"))           setTitle(intent.getStringExtra("title"));
+import jackpal.androidterm.R;
 
-    titleView=           directoryEntry("..");
-    pathEntryView=       fileEntry(null);
-    contentView=         makeContentView();
-    cachedDirectoryView= new HashMap<>();
-    cachedFileView=      new HashMap<>();
-    cachedDividerView=   new HashMap<>();
-  }
-  ////////////////////////////////////////////////////////////
-  public void onPause()
-  {
-    super.onPause();
-    doPause();
-  }
-  ////////////////////////////////////////////////////////////
-  private void doPause()
-  {
-    SP.edit().putString("lastDirectory", getCanonicalPath(cd)).commit();
-  }
-  ////////////////////////////////////////////////////////////
-  public void onResume()
-  {
-    super.onResume();
-    doResume();
-  }
-  ////////////////////////////////////////////////////////////
-  private void doResume()
-  {
-    makeView();
-  }
-  ////////////////////////////////////////////////////////////
-  private void swapTheme()
-  {
-    switch(theme)
-    {
-      case android.R.style.Theme:       theme=android.R.style.Theme_Light; break;
-      case android.R.style.Theme_Light: theme=android.R.style.Theme;       break;
-      default: return;
-    }
-    SP.edit().putInt("theme", theme).commit();
-    // FLAG_ACTIVITY_FORWARD_RESULT forwards our caller's result contract to
-    // the relaunched instance; no result is ever delivered back to this one,
-    // so a plain startActivity preserves the behaviour exactly.
-    startActivity(getIntent().addFlags(Intent.FLAG_ACTIVITY_FORWARD_RESULT));
-    finish();
-  }
-  ////////////////////////////////////////////////////////////
-  private String ifAvailable(String goTo)
-  {
-    if(goTo.startsWith(extSdCard))
-    {
-      String s=Environment.getExternalStorageState(extSdCardFile);
-      if(s.equals(Environment.MEDIA_MOUNTED)
-      || s.equals(Environment.MEDIA_MOUNTED_READ_ONLY)
-      )
-      {
-        return(goTo);
-      }
-      toast(getString(R.string.fsnavigator_no_external_storage), 1);//"External storage not available", 1);
-      return(extSdCard);
-    }
-    return(goTo);
-  }
-  ////////////////////////////////////////////////////////////
-  private File chdir(File file)
-  {
-    String path=ifAvailable(getCanonicalPath(file));
-    System.setProperty("user.dir", path);
-    return(cd=new File(path));
-  }
-  private File chdir(String path)
-  {
-    return(chdir(new File(path)));
-  }
-  ////////////////////////////////////////////////////////////
-  private TextView entryDividerH()
-  {
-    TextView tv;
-    if(countDividerView<cachedDividerView.size())
-    {
-      tv=cachedDividerView.get(countDividerView);
-    }
-    else
-    {
-      tv=new TextView(context);
-      tv.setLayoutParams(
-        new LinearLayout.LayoutParams(
-          LinearLayout.LayoutParams.FILL_PARENT
-        , 1
-        , 1
-        )
-      );
-      cachedDividerView.put(countDividerView, tv);
-    }
-    ++countDividerView;
-    return(tv);
-  }
-  ////////////////////////////////////////////////////////////
-  View.OnClickListener fileListener=new View.OnClickListener()
-  {
-    public void onClick(View view)
-    {
-      String path=(String)view.getTag();
-      if(path!=null)
-      {
-        setResult(RESULT_OK, getIntent().setData(Uri.fromFile(new File(cd, path))));
-        finish();
-      }
-    }
-  };
-  ////////////////////////////////////////////////////////////
-  private LinearLayout fileView(boolean entryWindow)
-  {
-    LinearLayout  ll=new LinearLayout(context);
-                  ll.setLayoutParams(
-                    new LinearLayout.LayoutParams(
-                      LinearLayout.LayoutParams.FILL_PARENT
-                    , LinearLayout.LayoutParams.WRAP_CONTENT
-                    , 1
-                    )
-                  );
-                  ll.setOrientation(LinearLayout.HORIZONTAL);
-                  ll.setGravity(android.view.Gravity.FILL);
-    final TextView tv;
-    if(entryWindow)
-    {
-      tv=new EditText(context);
-      tv.setHint(getString(R.string.fsnavigator_optional_enter_path));
-      tv.setLayoutParams(
-        new LinearLayout.LayoutParams(
-          LinearLayout.LayoutParams.FILL_PARENT
-        , LinearLayout.LayoutParams.FILL_PARENT
-        , 2
-        )
-      );
-      tv.setOnKeyListener(
-        new EditText.OnKeyListener()
-        {
-          public boolean onKey(View v, int keyCode, KeyEvent event)
-          {
-            if(keyCode==KeyEvent.KEYCODE_ENTER)
-            {
-              String path=tv.getText().toString();
-              File file=new File(getCanonicalPath(path));
-              chdir(file.getParentFile()==null?file:file.getParentFile());
-              if(file.isFile())
-              {
-                setResult(RESULT_OK, getIntent().setData(Uri.fromFile(file)));
-                finish();
-              }
-              else
-              {
-                chdir(file);
-                makeView();
-              }
-              return(true);
+public class FSNavigator extends ComponentActivity {
+    private SharedPreferences shared_prefs;
+    private File current_dir;
+    private File external_dir;
+    private MaterialToolbar toolbar;
+    private FileListAdapter adapter;
+
+    private final ActivityResultLauncher<Uri> open_directory_launcher = registerForActivityResult(new ActivityResultContracts.OpenDocumentTree(), uri -> {
+        if (uri == null) {
+            return;
+        }
+        getContentResolver().takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        File dir = toFile(uri);
+        if (dir != null && dir.isDirectory()) {
+            chdir(dir);
+            refresh();
+        } else {
+            Toast.makeText(this, R.string.fsnavigator_no_external_storage, Toast.LENGTH_LONG).show();
+        }
+    });
+
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.fsnavigator_activity);
+        shared_prefs = PreferenceManager.getDefaultSharedPreferences(this);
+        getWindow().setSoftInputMode(WindowManager.LayoutParams.SOFT_INPUT_STATE_ALWAYS_HIDDEN);
+
+        toolbar = findViewById(R.id.toolbar);
+        String title = getIntent().hasExtra("title") ? getIntent().getStringExtra("title") : getString(R.string.fsnavigator_title);
+        toolbar.setTitle(title);
+        toolbar.setNavigationOnClickListener(v -> goUpOrFinish());
+        toolbar.inflateMenu(R.menu.fsnavigator);
+        toolbar.setOnMenuItemClickListener(item -> {
+            if (item.getItemId() == R.id.fsnav_open_folder) {
+                open_directory_launcher.launch(null);
+                return true;
             }
-            return(false);
-          }
+            return false;
+        });
+
+        RecyclerView list = findViewById(R.id.fsnav_list);
+        list.setLayoutManager(new LinearLayoutManager(this));
+        adapter = new FileListAdapter();
+        list.setAdapter(adapter);
+
+        EditText path_entry = findViewById(R.id.fsnav_path_entry);
+        path_entry.setOnEditorActionListener((v, action_id, event) -> {
+            if (action_id == EditorInfo.IME_ACTION_GO) {
+                submitPath(path_entry.getText().toString());
+                return true;
+            }
+            return false;
+        });
+        TextInputLayout path_layout = findViewById(R.id.fsnav_path_layout);
+        path_layout.setEndIconOnClickListener(v -> submitPath(path_entry.getText().toString()));
+
+        external_dir = getExternalFilesDir(null);
+        Uri uri = getIntent().getData();
+        String path = uri == null ? null : uri.getPath();
+        if (path == null || !chdir(path)) {
+            chdir(external_dir);
         }
-      );
-      ll.addView(tv);
+        refresh();
     }
-    else
-    {
-      tv=new TextView(context);
-      tv.setClickable(true);
-      tv.setLongClickable(true);
-      tv.setOnClickListener(fileListener);
-      tv.setLayoutParams(
-        new LinearLayout.LayoutParams(
-          LinearLayout.LayoutParams.FILL_PARENT
-        , LinearLayout.LayoutParams.FILL_PARENT
-        , 1
-        )
-      );
-      HorizontalScrollView hv=new HorizontalScrollView(context);
-      hv.setFillViewport(true);
-      hv.setLayoutParams(
-        new LinearLayout.LayoutParams(
-          LinearLayout.LayoutParams.FILL_PARENT
-        , BUTTON_SIZE
-        , 7
-        )
-      );
-      hv.addView(tv);
-      ll.addView(hv);
-    }
-    tv.setFocusable(true);
-    tv.setSingleLine();
-    tv.setTextSize(textLg);
-    tv.setTypeface(Typeface.SERIF, Typeface.BOLD);
-    tv.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-    tv.setPadding(10, 5, 10, 5);
-    tv.setId(R.id.textview);//1);
 
-    return(ll);
-  }
-  ////////////////////////////////////////////////////////////
-  private LinearLayout fileEntry(final String entry)
-  {
-    LinearLayout ll;
-    if(entry==null)                           ll=fileView(entry==null);
-    else
-    {
-      if(countFileView<cachedFileView.size()) ll=cachedFileView.get(countFileView);
-      else                                    cachedFileView.put(countFileView, ll=fileView(entry==null));
-      ++countFileView;
+    @Override
+    public void onPause() {
+        super.onPause();
+        shared_prefs.edit().putString("lastDirectory", getCanonicalPath(current_dir)).commit();
     }
-    TextView     tv=(TextView)ll.findViewById(R.id.textview);
-                 tv.setText(entry==null?"":entry);
-                 tv.setTag(entry==null?"":entry);
-    return(ll);
-  }
-  ////////////////////////////////////////////////////////////
-  private ImageView imageViewFolder(boolean up)
-  {
-    ImageView b1=new ImageView(context);
-              b1.setClickable(true);
-              b1.setFocusable(true);
-              b1.setId(R.id.imageview);
-              b1.setLayoutParams(
-                new LinearLayout.LayoutParams(
-                  120
-                , 120
-                , 1
-                )
-              );
-              b1.setImageResource(up?R.drawable.ic_folderup:R.drawable.ic_folder);
-              b1.setOnClickListener(directoryListener);
-              b1.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-    return(b1);
-  }
-  ////////////////////////////////////////////////////////////
-  View.OnClickListener directoryListener=new View.OnClickListener()
-  {
-    public void onClick(View view)
-    {
-      String path=(String)view.getTag();
-      if(path!=null)
-      {
-        File file=new File(path);
-        if(file.isFile())
-        {
-          setResult(RESULT_OK, getIntent().setData(Uri.fromFile(file)));
-          finish();
+
+    private void goUpOrFinish() {
+        File parent = current_dir == null ? null : current_dir.getParentFile();
+        if (parent == null) {
+            finish();
+        } else {
+            chdir(parent);
+            refresh();
         }
-        else chdir(file);
-        makeView();
-      }
-    }
-  };
-  ////////////////////////////////////////////////////////////
-  private LinearLayout directoryView(boolean up)
-  {
-    ImageView             b1=imageViewFolder(up);
-    TextView              tv=new TextView(context);
-    if(up)                tv.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);//Gravity.CENTER);
-    else                  tv.setGravity(Gravity.CENTER_VERTICAL | Gravity.LEFT);
-                          tv.setClickable(true);
-                          tv.setLongClickable(true);
-                          tv.setFocusable(true);
-                          tv.setOnClickListener(directoryListener);
-                          tv.setMaxLines(1);
-                          tv.setTextSize(textLg);
-                          tv.setPadding(10, 5, 10, 5);
-                          tv.setId(R.id.textview);
-                          tv.setLayoutParams(
-                            new LinearLayout.LayoutParams(
-                              LinearLayout.LayoutParams.FILL_PARENT
-                            , BUTTON_SIZE
-                            , 1
-                            )
-                          );
-    HorizontalScrollView  hv=new HorizontalScrollView(context);
-                          hv.addView(tv);
-                          hv.setFillViewport(true);
-                          hv.setFocusable(true);
-                          hv.setOnClickListener(directoryListener);
-                          hv.setLayoutParams(
-                            new LinearLayout.LayoutParams(
-                              LinearLayout.LayoutParams.FILL_PARENT
-                            , BUTTON_SIZE
-                            , 7
-                            )
-                          );
-    LinearLayout          ll=new LinearLayout(context);
-                          ll.setLayoutParams(
-                            new LinearLayout.LayoutParams(
-                              LinearLayout.LayoutParams.FILL_PARENT
-                            , BUTTON_SIZE
-                            , 2
-                            )
-                          );
-                          ll.setOrientation(LinearLayout.HORIZONTAL);
-                          ll.setGravity(android.view.Gravity.FILL);
-                          ll.setOnClickListener(directoryListener);
-                          ll.addView(b1);
-                          ll.addView(hv);
-
-    return(ll);
-  }
-  ////////////////////////////////////////////////////////////
-  private LinearLayout directoryEntry(final String name)
-  {
-    boolean up=name.equals("..");
-    LinearLayout ll;
-    if(up)                                              {ll=directoryView(up);}
-    else
-    {
-      if(countDirectoryView<cachedDirectoryView.size()) {ll=                   cachedDirectoryView.get(countDirectoryView);}
-      else                                              {ll=directoryView(up); cachedDirectoryView.put(countDirectoryView, ll);}
-      ++countDirectoryView;
     }
 
-    TextView     tv=((TextView)ll.findViewById(R.id.textview));
-                 tv.setTag(name);
-                 tv.setText(up  ? "["+cd.getPath()+"]"
-                                : name
-                 );
-    ((ImageView)ll.findViewById(R.id.imageview)).setTag(name);
-    return(ll);
-  }
-  ////////////////////////////////////////////////////////////
-  public boolean onKeyUp(int keyCode, KeyEvent event)
-  {
-    if((keyCode == KeyEvent.KEYCODE_BACK)) {finish(); return(true);}
-    else return(super.onKeyUp(keyCode, event));
-  }
-  ////////////////////////////////////////////////////////////
-  private LinearLayout makeContentView()
-  {
-    final LinearLayout  ll=new LinearLayout(context);
-                        ll.setLayoutParams(
-                          new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.FILL_PARENT
-                          , LinearLayout.LayoutParams.WRAP_CONTENT
-                          , 1
-                          )
-                        );
-                        ll.setId(R.id.mainview);
-                        ll.setOrientation(LinearLayout.VERTICAL);
-                        ll.setGravity(android.view.Gravity.FILL);
-    final ScrollView    sv=new ScrollView(context);
-                        sv.setId(R.id.scrollview);
-                        sv.setLayoutParams(
-                          new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.FILL_PARENT
-                          , LinearLayout.LayoutParams.WRAP_CONTENT
-                          , 1
-                          )
-                        );
-                        sv.addView(ll);
-    final LinearLayout  bg=new LinearLayout(context);
-                        bg.setLayoutParams(
-                          new LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.FILL_PARENT
-                          , LinearLayout.LayoutParams.WRAP_CONTENT
-                          , 1
-                          )
-                        );
-                        bg.setOrientation(LinearLayout.VERTICAL);
-                        bg.setGravity(android.view.Gravity.FILL);
-                        bg.setTag(ll);
-                        bg.addView(
-                          titleView
-                        , android.view.ViewGroup.LayoutParams.FILL_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                        );
-                        bg.addView(sv);
-                        bg.addView(
-                          pathEntryView
-                        , android.view.ViewGroup.LayoutParams.FILL_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT
-                        );
-    return(bg);
-  }
-  ////////////////////////////////////////////////////////////
-  private void makeView()
-  {
-    countDirectoryView=countFileView=0;
-    ScrollView   sv=(ScrollView)contentView.findViewById(R.id.scrollview);
-    LinearLayout ll=(LinearLayout)sv.findViewById(R.id.mainview);
-                 ll.removeAllViews();
-    if(cd == null) chdir("/");
-    String path=getCanonicalPath(cd);
-
-    if(path.equals("")) {chdir(path="/");}
-    if(path.equals("/"))
-    {
-      titleView.setVisibility(View.GONE);
-    }
-    else
-    {
-      titleView.setVisibility(View.VISIBLE);
-      titleView.requestLayout();
-      ((TextView)titleView.findViewById(R.id.textview)).setText("["+cd.getPath()+"]");
-    }
-
-    String zd[]=cd.list(new java.io.FilenameFilter(){public boolean accept(File file, String name){return(  new File(file, name).isDirectory() );}});
-    if(zd!=null)
-    {
-      java.util.Arrays.sort(zd, 0, zd.length, stringSortComparator);
-      for(int i=0, n=zd.length; i<n; i++)
-      {
-        if(zd[i].equals("."))  continue;
-        ll.addView(directoryEntry(zd[i]));
-        ll.addView(entryDividerH());
-      }
-    }
-    String zf[]=cd.list(new java.io.FilenameFilter(){public boolean accept(File file, String name){return(!(new File(file, name).isDirectory()));}});
-    if(zf!=null)
-    {
-      java.util.Arrays.sort(zf, 0, zf.length, stringSortComparator);
-      for(int i=0, n=zf.length; i<n; i++)
-      {
-        ll.addView(fileEntry(zf[i]));
-        ll.addView(entryDividerH());
-      }
-    }
-    ((TextView)pathEntryView.findViewById(R.id.textview)).setText("");
-    sv.scrollTo(0, 0);
-//    titleView.setSelected(true);
-    setContentView(contentView);
-  }
-  //////////////////////////////////////////////////////////////////////
-  java.util.Comparator<String> stringSortComparator=
-    (a, b) -> a.toLowerCase().compareTo(b.toLowerCase());
-  //////////////////////////////////////////////////////////////////////
-  String getCanonicalPath(String path)
-  {
-    return(getCanonicalPath(new File(path)));
-  }
-  String getCanonicalPath(File file)
-  {
-    try{return(file.getCanonicalPath());}catch(IOException e){return(file.getPath());}
-  }
-  //////////////////////////////////////////////////////////////////////
-  public boolean onCreateOptionsMenu(Menu menu)
-//  public boolean onPrepareOptionsMenu(Menu menu)
-  {
-    super.onCreateOptionsMenu(menu);
-//    super.onPrepareOptionsMenu(menu);    menu.clear();
-    menu.add(0, ACTION_THEME_SWAP,  0,  getString(R.string.fsnavigator_change_theme));//"Change theme");
-    return(true);
-  }
-  //////////////////////////////////////////////////////////////////////
-  public boolean onOptionsItemSelected(MenuItem item)
-  {
-    super.onOptionsItemSelected(item);
-    return(doOptionsItem(item.getItemId()));
-  }
-  //////////////////////////////////////////////////////////////////////
-  private boolean doOptionsItem(int itemId)
-  {
-    switch(itemId)
-    {
-      case ACTION_THEME_SWAP: swapTheme();  return(true);
-    }
-    return(false);
-  }
-  //////////////////////////////////////////////////////////////////////
-//  private void toast(final String message){toast(message, 0);}
-  private void toast(final String message, final int duration)
-  {
-    runOnUiThread(
-      new Runnable()
-      {
-        public void run()
-        {
-          Toast.makeText(context, message, duration == 0 ?Toast.LENGTH_SHORT: Toast.LENGTH_LONG).show();
+    private void submitPath(String path) {
+        if (path.isEmpty()) {
+            return;
         }
-      }
-    );
-  }
-  //////////////////////////////////////////////////////////////////////
+        File file = new File(getCanonicalPath(path));
+        if (file.isFile()) {
+            pickFile(file);
+        } else {
+            chdir(file);
+            refresh();
+        }
+    }
+
+    private void pickFile(File file) {
+        setResult(RESULT_OK, getIntent().setData(Uri.fromFile(file)));
+        finish();
+    }
+
+    private File toFile(Uri tree_uri) {
+        String document_id = DocumentsContract.getTreeDocumentId(tree_uri);
+        int split = document_id.indexOf(':');
+        if (split < 0) {
+            return null;
+        }
+        String volume = document_id.substring(0, split);
+        String relative = document_id.substring(split + 1);
+        File root = volume.equals("primary") ? Environment.getExternalStorageDirectory() : new File("/storage", volume);
+        return relative.isEmpty() ? root : new File(root, relative);
+    }
+
+    private boolean chdir(String path) {
+        return path != null && chdir(new File(path));
+    }
+
+    private boolean chdir(File file) {
+        if (file == null) {
+            return false;
+        }
+        String path = ifAvailable(getCanonicalPath(file));
+        System.setProperty("user.dir", path);
+        current_dir = new File(path);
+        return true;
+    }
+
+    private String ifAvailable(String go_to) {
+        if (external_dir != null && go_to.startsWith(getCanonicalPath(external_dir))) {
+            String state = Environment.getExternalStorageState(external_dir);
+            if (state.equals(Environment.MEDIA_MOUNTED) || state.equals(Environment.MEDIA_MOUNTED_READ_ONLY)) {
+                return go_to;
+            }
+            Toast.makeText(this, R.string.fsnavigator_no_external_storage, Toast.LENGTH_LONG).show();
+            return getCanonicalPath(external_dir);
+        }
+        return go_to;
+    }
+
+    private void refresh() {
+        toolbar.setSubtitle(current_dir.getPath());
+        adapter.setEntries(buildEntries());
+    }
+
+    private List<File> buildEntries() {
+        List<File> entries = new ArrayList<>();
+        String[] names = current_dir.list();
+        if (names == null) {
+            return entries;
+        }
+        Arrays.sort(names, (a, b) -> a.toLowerCase().compareTo(b.toLowerCase()));
+        for (String name : names) {
+            File entry = new File(current_dir, name);
+            if (entry.isDirectory()) {
+                entries.add(entry);
+            }
+        }
+        for (String name : names) {
+            File entry = new File(current_dir, name);
+            if (!entry.isDirectory()) {
+                entries.add(entry);
+            }
+        }
+        return entries;
+    }
+
+    private String getCanonicalPath(String path) {
+        return getCanonicalPath(new File(path));
+    }
+
+    private String getCanonicalPath(File file) {
+        try {
+            return file.getCanonicalPath();
+        } catch (IOException e) {
+            return file.getPath();
+        }
+    }
+
+    private class FileListAdapter extends RecyclerView.Adapter<FileListAdapter.EntryHolder> {
+        private List<File> entries = new ArrayList<>();
+
+        void setEntries(List<File> new_entries) {
+            entries = new_entries;
+            notifyDataSetChanged();
+        }
+
+        @Override
+        public int getItemCount() {
+            return entries.size() + (current_dir.getParentFile() == null ? 0 : 1);
+        }
+
+        @NonNull
+        @Override
+        public EntryHolder onCreateViewHolder(@NonNull ViewGroup parent, int view_type) {
+            return new EntryHolder(LayoutInflater.from(parent.getContext()).inflate(R.layout.fsnav_item, parent, false));
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull EntryHolder holder, int position) {
+            boolean up_row = current_dir.getParentFile() != null && position == 0;
+            if (up_row) {
+                holder.bindUp();
+            } else {
+                int index = current_dir.getParentFile() == null ? position : position - 1;
+                holder.bind(entries.get(index));
+            }
+        }
+
+        private class EntryHolder extends RecyclerView.ViewHolder {
+            private final ImageView icon;
+            private final TextView name;
+            private final TextView detail;
+
+            EntryHolder(View item_view) {
+                super(item_view);
+                icon = item_view.findViewById(R.id.fsnav_icon);
+                name = item_view.findViewById(R.id.fsnav_name);
+                detail = item_view.findViewById(R.id.fsnav_detail);
+            }
+
+            void bindUp() {
+                icon.setImageResource(R.drawable.ic_folderup);
+                name.setText("..");
+                detail.setText(current_dir.getParent());
+                itemView.setOnClickListener(v -> goUpOrFinish());
+            }
+
+            void bind(File entry) {
+                boolean is_dir = entry.isDirectory();
+                icon.setImageResource(is_dir ? R.drawable.ic_folder : R.drawable.ic_file);
+                name.setText(entry.getName());
+                String date = DateFormat.format("yyyy-MM-dd HH:mm", new Date(entry.lastModified())).toString();
+                detail.setText(is_dir ? getString(R.string.fsnavigator_folder) + " · " + date : Formatter.formatShortFileSize(FSNavigator.this, entry.length()) + " · " + date);
+                itemView.setOnClickListener(v -> {
+                    if (entry.isDirectory()) {
+                        chdir(entry);
+                        refresh();
+                    } else {
+                        pickFile(entry);
+                    }
+                });
+            }
+        }
+    }
 }

@@ -178,6 +178,8 @@
   <string name="fsnavigator_no_external_storage">External storage not available</string>
   <string name="fsnavigator_optional_enter_path">Or enter path here.</string>
   <string name="fsnavigator_change_theme">Change theme</string>
+  <string name="fsnavigator_open_folder">Open folder</string>
+  <string name="fsnavigator_folder">Folder</string>
   <!-- AddShortcut.java -->
   <string name="addshortcut_command_hint">command</string>
   <string name="addshortcut_example_hint">--example=\""a\"</string>

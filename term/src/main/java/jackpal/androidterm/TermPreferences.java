@@ -18,17 +18,27 @@ package jackpal.androidterm;
 
 import jackpal.androidterm.compat.ActionBarCompat;
 import android.os.Bundle;
-import android.preference.PreferenceActivity;
 import android.view.MenuItem;
 
-public class TermPreferences extends PreferenceActivity {
+import androidx.fragment.app.FragmentActivity;
+import androidx.preference.PreferenceFragmentCompat;
+
+public class TermPreferences extends FragmentActivity {
+
+    public static class TermPreferencesFragment extends PreferenceFragmentCompat {
+        @Override
+        public void onCreatePreferences(Bundle savedInstanceState, String rootKey) {
+            setPreferencesFromResource(R.xml.preferences, rootKey);
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // Load the preferences from an XML resource
-        addPreferencesFromResource(R.xml.preferences);
+        if (savedInstanceState == null) {
+            getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new TermPreferencesFragment()).commit();
+        }
     }
 
     @Override

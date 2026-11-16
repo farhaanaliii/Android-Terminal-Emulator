@@ -2,11 +2,10 @@ apply plugin: 'com.android.library'
 
 android {
     namespace "jackpal.androidterm.emulatorview"
-    compileSdk 34
+    compileSdk 35
 
     defaultConfig {
         minSdk 26
-        targetSdk 34
     }
 
     compileOptions {

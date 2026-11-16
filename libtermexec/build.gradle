@@ -2,7 +2,7 @@ apply plugin: 'com.android.library'
 
 android {
     namespace "jackpal.androidterm.libtermexec"
-    compileSdk 34
+    compileSdk 35
     ndkVersion NDK_VERSION
 
     buildFeatures {
@@ -11,7 +11,6 @@ android {
 
     defaultConfig {
         minSdk 26
-        targetSdk 34
         versionCode 1
         versionName "1.0"
 

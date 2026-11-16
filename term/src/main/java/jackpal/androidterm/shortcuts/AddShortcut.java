@@ -31,9 +31,31 @@ import java.io.            File;
 import java.security.      GeneralSecurityException;
 
 public class      AddShortcut
-       extends    android.app.Activity
+       extends    androidx.activity.ComponentActivity
 {
-  private final int                    OP_MAKE_SHORTCUT=            1;
+  private final androidx.activity.result.ActivityResultLauncher<Intent> makeShortcutLauncher=
+    registerForActivityResult(
+      new androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult()
+    , new androidx.activity.result.ActivityResultCallback<androidx.activity.result.ActivityResult>()
+      {
+        @Override
+        public void onActivityResult(androidx.activity.result.ActivityResult result)
+        {
+          Intent data= result.getData();
+          Uri    uri=  null;
+          path= null;
+          if(data!=null && (uri=data.getData())!=null && (path=uri.getPath())!=null)
+          {
+            SP.edit().putString("lastPath", path).commit();
+            et[PATH].setText(path);
+            name=path.replaceAll(".*/", "");
+            if(et[NAME].getText().toString().equals("")) et[NAME].setText(name);
+            if(iconText[0]!=null && iconText[0].equals("")) iconText[0]=name;
+          }
+          else finish();
+        }
+      }
+    );
   private final Context                context=                     this;
   private       SharedPreferences      SP;
   private       int                    ix=                          0;
@@ -109,7 +131,7 @@ public class      AddShortcut
                       .putExtra("CONTENT_TYPE", "*/*")
                       .setAction(Intent.ACTION_PICK);
                     }
-                    startActivityForResult(pickerIntent, OP_MAKE_SHORTCUT);
+                    makeShortcutLauncher.launch(pickerIntent);
                 }
               }
             );
@@ -284,26 +306,4 @@ public class      AddShortcut
       setResult(RESULT_OK, wrapper);
       finish();
     }
-  //////////////////////////////////////////////////////////////////////
-  protected void onActivityResult(int requestCode, int resultCode, Intent data)
-  {
-    super.onActivityResult(requestCode, resultCode, data);
-    Uri    uri=  null;
-    path= null;
-    switch(requestCode)
-    {
-      case OP_MAKE_SHORTCUT:
-        if(data!=null && (uri=data.getData())!=null && (path=uri.getPath())!=null)
-        {
-          SP.edit().putString("lastPath", path).commit();
-          et[PATH].setText(path);
-          name=path.replaceAll(".*/", "");
-          if(et[NAME].getText().toString().equals("")) et[NAME].setText(name);
-          if(iconText[0]!=null && iconText[0].equals("")) iconText[0]=name;
-        }
-        else finish();
-        break;
-    }
-  }
-  //////////////////////////////////////////////////////////////////////
 }

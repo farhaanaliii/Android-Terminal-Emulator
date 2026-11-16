@@ -2,13 +2,13 @@ apply plugin: 'com.android.application'
 
 android {
     namespace "jackpal.androidterm"
-    compileSdk 34
+    compileSdk 35
     ndkVersion NDK_VERSION
 
     defaultConfig {
         applicationId "jackpal.androidterm"
         minSdk 26
-        targetSdk 34
+        targetSdk 35
         versionCode 71
         versionName "1.0.70"
 

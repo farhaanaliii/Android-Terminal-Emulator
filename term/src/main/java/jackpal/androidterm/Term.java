@@ -33,7 +33,11 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 
-import android.app.Activity;
+import androidx.activity.ComponentActivity;
+import androidx.activity.result.ActivityResult;
+import androidx.activity.result.ActivityResultCallback;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
@@ -81,7 +85,7 @@ import android.widget.Toast;
  * A terminal emulator activity.
  */
 
-public class Term extends Activity implements UpdateCallback, SharedPreferences.OnSharedPreferenceChangeListener {
+public class Term extends ComponentActivity implements UpdateCallback, SharedPreferences.OnSharedPreferenceChangeListener {
     /**
      * The ViewFlipper which holds the collection of EmulatorView widgets.
      */
@@ -107,7 +111,7 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
 
     private Intent TSIntent;
 
-    public static final int REQUEST_CHOOSE_WINDOW = 1;
+
     public static final String EXTRA_WINDOW_ID = "jackpal.androidterm.window_id";
     private int onResumeSelectWindow = -1;
     private ComponentName mPrivateAlias;
@@ -316,6 +320,30 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
     };
 
     private Handler mHandler = new Handler(Looper.getMainLooper());
+
+    private final ActivityResultLauncher<Intent> mChooseWindowLauncher = registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), new ActivityResultCallback<ActivityResult>() {
+        @Override
+        public void onActivityResult(ActivityResult result) {
+            Intent data = result.getData();
+            if (result.getResultCode() == RESULT_OK && data != null) {
+                int position = data.getIntExtra(EXTRA_WINDOW_ID, -2);
+                if (position >= 0) {
+                    // Switch windows after session list is in sync, not here
+                    onResumeSelectWindow = position;
+                } else if (position == -1) {
+                    doCreateNewWindow();
+                    onResumeSelectWindow = mTermSessions.size() - 1;
+                }
+            } else {
+                // Close the activity if user closed all sessions
+                // TODO the left path will be invoked when nothing happened, but this Activity was destroyed!
+                if (mTermSessions == null || mTermSessions.size() == 0) {
+                    mStopServiceOnFinish = true;
+                    finish();
+                }
+            }
+        }
+    });
 
     @Override
     public void onCreate(Bundle icicle) {
@@ -649,7 +677,7 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         } else if (id == R.id.menu_close_window) {
             confirmCloseWindow();
         } else if (id == R.id.menu_window_list) {
-            startActivityForResult(new Intent(this, WindowList.class), REQUEST_CHOOSE_WINDOW);
+            mChooseWindowLauncher.launch(new Intent(this, WindowList.class));
         } else if (id == R.id.menu_reset) {
             doResetTerminal();
             Toast toast = Toast.makeText(this,R.string.reset_toast_notification,Toast.LENGTH_LONG);
@@ -732,31 +760,6 @@ public class Term extends Activity implements UpdateCallback, SharedPreferences.
         mViewFlipper.removeView(view);
         if (mTermSessions.size() != 0) {
             mViewFlipper.showNext();
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int request, int result, Intent data) {
-        switch (request) {
-        case REQUEST_CHOOSE_WINDOW:
-            if (result == RESULT_OK && data != null) {
-                int position = data.getIntExtra(EXTRA_WINDOW_ID, -2);
-                if (position >= 0) {
-                    // Switch windows after session list is in sync, not here
-                    onResumeSelectWindow = position;
-                } else if (position == -1) {
-                    doCreateNewWindow();
-                    onResumeSelectWindow = mTermSessions.size() - 1;
-                }
-            } else {
-                // Close the activity if user closed all sessions
-                // TODO the left path will be invoked when nothing happened, but this Activity was destroyed!
-                if (mTermSessions == null || mTermSessions.size() == 0) {
-                    mStopServiceOnFinish = true;
-                    finish();
-                }
-            }
-            break;
         }
     }
 

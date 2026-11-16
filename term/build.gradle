@@ -41,4 +41,5 @@ android {
 dependencies {
     implementation project(':emulatorview')
     implementation project(':libtermexec')
+    implementation 'androidx.activity:activity:1.9.3'
 }

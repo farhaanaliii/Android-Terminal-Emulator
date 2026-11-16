@@ -20,7 +20,8 @@
                 android:label="@string/perm_prepend_to_path"
                 android:description="@string/permdesc_prepend_to_path"
                 android:protectionLevel="dangerous" />
-    <application android:icon="@drawable/ic_launcher"
+    <application android:icon="@mipmap/ic_launcher"
+                android:roundIcon="@mipmap/ic_launcher_round"
                 android:label="@string/application_terminal"
                 android:hardwareAccelerated="true"
                 android:theme="@style/Theme">

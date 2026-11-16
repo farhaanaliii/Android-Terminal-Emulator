@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flat launcher glyph used where a plain drawable is needed (shortcut previews). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#FF37474F"
+        android:pathData="M0,0h48v48H0z"/>
+    <group
+        android:scaleX="1.5"
+        android:scaleY="1.5"
+        android:translateX="6"
+        android:translateY="6">
+        <path
+            android:fillColor="@android:color/white"
+            android:pathData="M20,4H4C2.9,4 2,4.9 2,6v12c0,1.1 0.9,2 2,2h16c1.1,0 2,-0.9 2,-2V6c0,-1.1 -0.9,-2 -2,-2zM20,18H4V6h16v12zM4.6,8.4L7.7,12L4.6,15.6L6,17l4.5,-5L6,7l-1.4,1.4zM12,15h6v2h-6v-2z"/>
+    </group>
+</vector>

@@ -300,7 +300,7 @@ public class      AddShortcut
              {
                wrapper.putExtra(
                  Intent.EXTRA_SHORTCUT_ICON_RESOURCE
-               , Intent.ShortcutIconResource.fromContext(context, jackpal.androidterm.R.drawable.ic_launcher)
+               , Intent.ShortcutIconResource.fromContext(context, jackpal.androidterm.R.mipmap.ic_launcher)
                );
              }
       setResult(RESULT_OK, wrapper);

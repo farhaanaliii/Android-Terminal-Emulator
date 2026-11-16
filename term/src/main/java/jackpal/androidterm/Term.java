@@ -378,6 +378,16 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         mSettings = new TermSettings(getResources(), mPrefs);
         mPrefs.registerOnSharedPreferenceChangeListener(this);
         jackpal.androidterm.util.ThemeMode.apply(this);
+        getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                if (!handleBackKey()) {
+                    setEnabled(false);
+                    getOnBackPressedDispatcher().onBackPressed();
+                    setEnabled(true);
+                }
+            }
+        });
 
         Intent broadcast = new Intent(ACTION_PATH_BROADCAST);
         broadcast.addFlags(Intent.FLAG_INCLUDE_STOPPED_PACKAGES);
@@ -853,26 +863,30 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
           }
         }
 
+    private boolean handleBackKey() {
+        if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES && isActionBarShowing()) {
+            hideActionBar();
+            return true;
+        }
+        switch (mSettings.getBackKeyAction()) {
+        case TermSettings.BACK_KEY_STOPS_SERVICE:
+            mStopServiceOnFinish = true;
+        case TermSettings.BACK_KEY_CLOSES_ACTIVITY:
+            finish();
+            return true;
+        case TermSettings.BACK_KEY_CLOSES_WINDOW:
+            doCloseWindow();
+            return true;
+        default:
+            return false;
+        }
+    }
+
     @Override
     public boolean onKeyUp(int keyCode, KeyEvent event) {
         switch (keyCode) {
         case KeyEvent.KEYCODE_BACK:
-            if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES && isActionBarShowing()) {
-                hideActionBar();
-                return true;
-            }
-            switch (mSettings.getBackKeyAction()) {
-            case TermSettings.BACK_KEY_STOPS_SERVICE:
-                mStopServiceOnFinish = true;
-            case TermSettings.BACK_KEY_CLOSES_ACTIVITY:
-                finish();
-                return true;
-            case TermSettings.BACK_KEY_CLOSES_WINDOW:
-                doCloseWindow();
-                return true;
-            default:
-                return false;
-            }
+            return handleBackKey();
         case KeyEvent.KEYCODE_MENU:
             if (!isActionBarShowing()) {
                 showActionBar();

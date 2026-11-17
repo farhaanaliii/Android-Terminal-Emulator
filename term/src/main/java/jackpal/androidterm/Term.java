@@ -106,6 +106,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     private final static int SEND_FN_KEY_ID = 4;
 
     private boolean mAlreadyStarted = false;
+    private boolean mInstallingBootstrap = false;
     private boolean mStopServiceOnFinish = false;
 
     private Intent TSIntent;
@@ -369,6 +370,13 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
         Log.v(TermDebug.LOG_TAG, "onCreate");
 
+        jackpal.androidterm.util.Bootstrap.init(this);
+        if (jackpal.androidterm.util.Bootstrap.needsInstall(this)) {
+            mInstallingBootstrap = true;
+            installBootstrap();
+            return;
+        }
+
         mPrivateAlias = new ComponentName(this, RemoteInterface.PRIVACT_ACTIVITY_ALIAS);
 
         if (icicle == null)
@@ -454,10 +462,34 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         return path.substring(0, path.length()-1);
     }
 
+    private void installBootstrap() {
+        android.widget.LinearLayout layout = new android.widget.LinearLayout(this);
+        layout.setOrientation(android.widget.LinearLayout.VERTICAL);
+        layout.setGravity(android.view.Gravity.CENTER);
+        android.widget.ProgressBar progress = new android.widget.ProgressBar(this);
+        layout.addView(progress);
+        android.widget.TextView label = new android.widget.TextView(this);
+        label.setText(R.string.msg_installing_environment);
+        layout.addView(label);
+        setContentView(layout);
+        new Thread(() -> {
+            try {
+                jackpal.androidterm.util.Bootstrap.install(this);
+            } catch (java.io.IOException e) {
+                Log.e(TermDebug.LOG_TAG, "Bootstrap install failed", e);
+                jackpal.androidterm.util.Bootstrap.markFailed(this);
+            }
+            runOnUiThread(this::recreate);
+        }).start();
+    }
+
     @Override
     protected void onStart() {
         super.onStart();
 
+        if (mInstallingBootstrap) {
+            return;
+        }
         if (!bindService(TSIntent, mTSConnection, BIND_AUTO_CREATE)) {
             throw new IllegalStateException("Failed to bind to TermService!");
         }
@@ -519,6 +551,9 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     public void onDestroy() {
         super.onDestroy();
 
+        if (mInstallingBootstrap) {
+            return;
+        }
         PreferenceManager.getDefaultSharedPreferences(this)
                 .unregisterOnSharedPreferenceChangeListener(this);
 
@@ -636,6 +671,9 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     public void onPause() {
         super.onPause();
 
+        if (mInstallingBootstrap) {
+            return;
+        }
         /* Explicitly close the input method
            Otherwise, the soft keyboard could cover up whatever activity takes
            our place */
@@ -651,6 +689,10 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
     @Override
     protected void onStop() {
+        if (mInstallingBootstrap) {
+            super.onStop();
+            return;
+        }
         mViewFlipper.onPause();
         if (mTermSessions != null) {
             mTermSessions.removeCallback(this);

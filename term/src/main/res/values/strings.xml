@@ -118,6 +118,9 @@
    <string name="title_shell_preference">Command line</string>
    <string name="summary_shell_preference">Specify the shell command line.</string>
    <string name="dialog_title_shell_preference">Shell</string>
+   <string name="title_bootstrap_shell_preference">Built-in environment shell</string>
+   <string name="summary_bootstrap_shell_preference">Run bash from the built-in environment as the default shell.</string>
+   <string name="msg_installing_environment">Installing built-in environment…</string>
 
    <string name="title_initialcommand_preference">Initial command</string>
    <string name="summary_initialcommand_preference">Sent to the shell when it starts.</string>

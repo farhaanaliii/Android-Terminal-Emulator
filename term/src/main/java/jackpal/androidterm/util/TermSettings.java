@@ -58,7 +58,7 @@ public class TermSettings {
     private boolean mMouseTracking;
 
     private boolean mUseKeyboardShortcuts;
-    private boolean mBootstrapShell = true;
+    private boolean mBootstrapShell = false;
 
     private static final String STATUSBAR_KEY = "statusbar";
     private static final String ACTIONBAR_KEY = "actionbar";

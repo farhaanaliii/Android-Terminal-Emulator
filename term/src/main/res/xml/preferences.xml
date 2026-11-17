@@ -190,7 +190,7 @@
             android:dialogTitle="@string/dialog_title_shell_preference" />
     <SwitchPreference
             android:key="bootstrap_shell"
-            android:defaultValue="true"
+            android:defaultValue="false"
             android:title="@string/title_bootstrap_shell_preference"
             android:summary="@string/summary_bootstrap_shell_preference" />
     <EditTextPreference

@@ -27,7 +27,7 @@
 # Driven from the ExternalProject install step in
 # term/src/main/jni/CMakeLists.txt. Inputs: BUSYBOX_BIN, BUSYBOX_LINKS,
 # STAGE_DIR, ENV_DIR, ANDROID_ABI, TRIPLE, API, NDK_SYSROOT, TOOLS_DIR,
-# OUT_ZIP.
+# DEPS_DIR, OUT_ZIP.
 
 file(REMOVE_RECURSE "${STAGE_DIR}")
 file(MAKE_DIRECTORY
@@ -52,6 +52,31 @@ if(DEFINED TOOLS_DIR AND IS_DIRECTORY "${TOOLS_DIR}/bin")
     file(COPY "${TOOLS_DIR}/bin/" DESTINATION "${STAGE_DIR}/usr/bin"
         FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
                          GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()
+
+# The OpenSSH clients' runtime libraries, from the deps prefix. These
+# are real shared libraries (not sysroot stubs), so they belong in
+# usr/lib itself, where the clients' rpath points.
+if(DEFINED DEPS_DIR)
+    foreach(dep_lib libcrypto.so libssl.so)
+        if(EXISTS "${DEPS_DIR}/lib/${dep_lib}")
+            file(COPY "${DEPS_DIR}/lib/${dep_lib}" DESTINATION "${STAGE_DIR}/usr/lib"
+                FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                                 GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+        endif()
+    endforeach()
+    foreach(tool openssh openssl zlib)
+        if(EXISTS "${ENV_DIR}/licenses/${tool}-LICENSE.txt")
+            file(MAKE_DIRECTORY "${STAGE_DIR}/usr/share/licenses/${tool}")
+            file(COPY "${ENV_DIR}/licenses/${tool}-LICENSE.txt"
+                DESTINATION "${STAGE_DIR}/usr/share/licenses/${tool}")
+        endif()
+    endforeach()
+    if(EXISTS "${ENV_DIR}/licenses/openssl-Apache-2.0.txt")
+        file(MAKE_DIRECTORY "${STAGE_DIR}/usr/share/licenses/openssl")
+        file(COPY "${ENV_DIR}/licenses/openssl-Apache-2.0.txt"
+            DESTINATION "${STAGE_DIR}/usr/share/licenses/openssl")
+    endif()
 endif()
 
 file(READ "${BUSYBOX_LINKS}" links_text)

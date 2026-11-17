@@ -35,7 +35,7 @@ public class Bootstrap {
     private static final String VERSION = "1";
     private static final String MARKER = ".bootstrap-version";
     private static final String FAILED_MARKER = ".bootstrap-failed";
-    private static final String ENV_VERSION = "2";
+    private static final String ENV_VERSION = "3";
     private static final String ENV_MARKER = ".env-version";
     private static final String ENV_FAILED_MARKER = ".env-failed";
 

@@ -105,6 +105,7 @@ public class ShellTermSession extends GenericTermSession {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
             env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
+            env_list.add("PS1=\\w $ ");
         } else if (use_env) {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
@@ -118,14 +119,17 @@ public class ShellTermSession extends GenericTermSession {
         String[] env = env_list.toArray(new String[0]);
 
         String shell = settings.getShell();
+        String workingDirectory = null;
         if (use_busybox) {
             Bootstrap.ensureLayout();
             shell = Bootstrap.getPrefixPath() + "/bin/busybox sh";
+            workingDirectory = Bootstrap.getHomePath();
         } else if (use_env && settings.useBootstrapShell() && shell.equals(settings.getFailsafeShell())) {
             shell = Bootstrap.getPrefixPath() + "/bin/bash -l";
+            workingDirectory = Bootstrap.getHomePath();
         }
 
-        mProcId = createSubprocess(shell, env);
+        mProcId = createSubprocess(shell, env, workingDirectory);
     }
 
     private String checkPath(String path) {
@@ -155,7 +159,7 @@ public class ShellTermSession extends GenericTermSession {
         }
     }
 
-    private int createSubprocess(String shell, String[] env) throws IOException {
+    private int createSubprocess(String shell, String[] env, String workingDirectory) throws IOException {
         ArrayList<String> argList = parse(shell);
         String arg0;
         String[] args;
@@ -177,7 +181,7 @@ public class ShellTermSession extends GenericTermSession {
             args = argList.toArray(new String[1]);
         }
 
-        return TermExec.createSubprocess(mTermFd, arg0, args, env);
+        return TermExec.createSubprocess(mTermFd, arg0, args, env, workingDirectory);
     }
 
     private ArrayList<String> parse(String cmd) {

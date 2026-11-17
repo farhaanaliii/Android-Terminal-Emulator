@@ -523,6 +523,12 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
                 onResumeSelectWindow = -1;
             }
             mViewFlipper.onResume();
+            FloatingBubbleService.refresh(this, mTermSessions.size() > 0);
+            android.content.SharedPreferences prefs = androidx.preference.PreferenceManager.getDefaultSharedPreferences(this);
+            if (mTermSessions.size() > 0 && FloatingBubbleService.isEnabled(this) && !FloatingBubbleService.canDrawOverlays(this) && !prefs.getBoolean("floating_bubble_perm_asked", false)) {
+                prefs.edit().putBoolean("floating_bubble_perm_asked", true).apply();
+                startActivity(new Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:" + getPackageName())));
+            }
         }
     }
 

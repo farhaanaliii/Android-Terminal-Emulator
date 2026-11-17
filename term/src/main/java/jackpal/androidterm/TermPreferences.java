@@ -58,5 +58,13 @@ public class TermPreferences extends AppCompatActivity implements SharedPreferen
         if (ThemeMode.PREF_THEME_MODE.equals(key) || ThemeMode.PREF_DYNAMIC_COLOR.equals(key)) {
             ThemeMode.apply(this);
         }
+        if (FloatingBubbleService.PREF_FLOATING_BUBBLE.equals(key)) {
+            if (!sharedPreferences.getBoolean(key, true)) {
+                stopService(new android.content.Intent(this, FloatingBubbleService.class));
+            } else if (!FloatingBubbleService.canDrawOverlays(this)) {
+                android.content.Intent intent = new android.content.Intent(android.provider.Settings.ACTION_MANAGE_OVERLAY_PERMISSION, android.net.Uri.parse("package:" + getPackageName()));
+                startActivity(intent);
+            }
+        }
     }
 }

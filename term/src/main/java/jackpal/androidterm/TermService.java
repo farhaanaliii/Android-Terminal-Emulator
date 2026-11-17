@@ -142,6 +142,7 @@ public class TermService extends Service implements TermSession.FinishCallback
 
     @Override
     public void onDestroy() {
+        FloatingBubbleService.refresh(this, false);
         stopForeground(true);
         for (TermSession session : mTermSessions) {
             /* Don't automatically remove from list of sessions -- we clear the

@@ -27,10 +27,14 @@ import java.util.zip.ZipInputStream;
  */
 public class Bootstrap {
     public static final String PREF_BOOTSTRAP_SHELL = "bootstrap_shell";
+    public static final String PREF_BUSYBOX_SHELL = "busybox_shell";
 
     private static final String VERSION = "1";
     private static final String MARKER = ".bootstrap-version";
     private static final String FAILED_MARKER = ".bootstrap-failed";
+    private static final String ENV_VERSION = "1";
+    private static final String ENV_MARKER = ".env-version";
+    private static final String ENV_FAILED_MARKER = ".env-failed";
 
     private static Context sContext;
 
@@ -54,15 +58,34 @@ public class Bootstrap {
         return getHomeDir().getAbsolutePath();
     }
 
-    private static String assetName() {
+    private static String archName() {
         String abi = Build.SUPPORTED_ABIS[0];
-        String arch = abi;
         if (abi.equals("arm64-v8a")) {
-            arch = "aarch64";
+            return "aarch64";
         } else if (abi.equals("armeabi-v7a")) {
-            arch = "arm";
+            return "arm";
         }
-        return "bootstrap-" + arch + ".zip";
+        return abi;
+    }
+
+    private static String assetName() {
+        return "bootstrap-" + archName() + ".zip";
+    }
+
+    private static String envAssetName() {
+        return "busybox-" + archName() + ".zip";
+    }
+
+    public static File getBusyBoxFile() {
+        return new File(getPrefixDir(), "bin/busybox");
+    }
+
+    /** Creates the environment layout: files/usr/{bin,lib,include,tmp} and files/home. */
+    public static void ensureLayout() {
+        for (String name : new String[] {"bin", "lib", "include", "tmp"}) {
+            new File(getPrefixDir(), name).mkdirs();
+        }
+        getHomeDir().mkdirs();
     }
 
     public static boolean hasAsset(Context context) {
@@ -99,12 +122,12 @@ public class Bootstrap {
         }
     }
 
-    public static void install(Context context) throws IOException, ErrnoException {
+    private static void extractZip(Context context, String asset) throws IOException, ErrnoException {
         File files_dir = context.getFilesDir();
         String files_root = files_dir.getCanonicalPath();
         AssetManager assets = context.getAssets();
         byte[] buffer = new byte[64 * 1024];
-        try (ZipInputStream zip = new ZipInputStream(assets.open(assetName()))) {
+        try (ZipInputStream zip = new ZipInputStream(assets.open(asset))) {
             ZipEntry entry;
             while ((entry = zip.getNextEntry()) != null) {
                 File target = new File(files_dir, entry.getName());
@@ -125,6 +148,62 @@ public class Bootstrap {
                 Os.chmod(target.getAbsolutePath(), 0644);
             }
         }
+    }
+
+    public static boolean hasEnvAsset(Context context) {
+        try (InputStream in = context.getAssets().open(envAssetName())) {
+            return true;
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static boolean isEnvInstalled() {
+        File marker = new File(getPrefixDir(), ENV_MARKER);
+        if (!marker.exists() || !getBusyBoxFile().exists()) {
+            return false;
+        }
+        try (BufferedReader reader = new BufferedReader(new FileReader(marker))) {
+            return ENV_VERSION.equals(reader.readLine());
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    public static boolean needsEnvInstall(Context context) {
+        return hasEnvAsset(context) && !isEnvInstalled()
+                && !new File(context.getFilesDir(), ENV_FAILED_MARKER).exists();
+    }
+
+    public static void markEnvFailed(Context context) {
+        try (FileWriter writer = new FileWriter(new File(context.getFilesDir(), ENV_FAILED_MARKER))) {
+            writer.write("failed");
+        } catch (IOException e) {
+            Log.e(TermDebug.LOG_TAG, "Could not write env failure marker", e);
+        }
+    }
+
+    /**
+     * Installs the BusyBox environment asset (usr/bin/busybox, applet
+     * symlinks, sysroot headers/libraries) into the files/ prefix, using
+     * the same SYMLINKS.txt / EXECUTABLES.txt mechanism as the bootstrap.
+     */
+    public static void installEnv(Context context) throws IOException, ErrnoException {
+        extractZip(context, envAssetName());
+        applyExecutables();
+        createSymlinks();
+        ensureLayout();
+        File tmp = new File(getPrefixDir(), "tmp");
+        Os.chmod(tmp.getAbsolutePath(), 0700);
+        writeHomeFiles();
+        try (FileWriter writer = new FileWriter(new File(getPrefixDir(), ENV_MARKER))) {
+            writer.write(ENV_VERSION);
+        }
+        Log.i(TermDebug.LOG_TAG, "BusyBox environment installed to " + getPrefixPath());
+    }
+
+    public static void install(Context context) throws IOException, ErrnoException {
+        extractZip(context, assetName());
         applyExecutables();
         createSymlinks();
         File tmp = new File(getPrefixDir(), "tmp");

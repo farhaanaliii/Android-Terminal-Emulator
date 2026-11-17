@@ -371,11 +371,13 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         Log.v(TermDebug.LOG_TAG, "onCreate");
 
         jackpal.androidterm.util.Bootstrap.init(this);
-        if (jackpal.androidterm.util.Bootstrap.needsInstall(this)) {
+        if (jackpal.androidterm.util.Bootstrap.needsInstall(this)
+                || jackpal.androidterm.util.Bootstrap.needsEnvInstall(this)) {
             mInstallingBootstrap = true;
             installBootstrap();
             return;
         }
+        jackpal.androidterm.util.Bootstrap.ensureLayout();
 
         mPrivateAlias = new ComponentName(this, RemoteInterface.PRIVACT_ACTIVITY_ALIAS);
 
@@ -474,10 +476,20 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         setContentView(layout);
         new Thread(() -> {
             try {
-                jackpal.androidterm.util.Bootstrap.install(this);
+                if (jackpal.androidterm.util.Bootstrap.needsInstall(this)) {
+                    jackpal.androidterm.util.Bootstrap.install(this);
+                }
             } catch (Exception e) {
                 Log.e(TermDebug.LOG_TAG, "Bootstrap install failed", e);
                 jackpal.androidterm.util.Bootstrap.markFailed(this);
+            }
+            try {
+                if (jackpal.androidterm.util.Bootstrap.needsEnvInstall(this)) {
+                    jackpal.androidterm.util.Bootstrap.installEnv(this);
+                }
+            } catch (Exception e) {
+                Log.e(TermDebug.LOG_TAG, "Environment install failed", e);
+                jackpal.androidterm.util.Bootstrap.markEnvFailed(this);
             }
             runOnUiThread(this::recreate);
         }).start();

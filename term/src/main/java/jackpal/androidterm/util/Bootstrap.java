@@ -121,10 +121,10 @@ public class Bootstrap {
                         out.write(buffer, 0, read);
                     }
                 }
-                int mode = (int) (entry.getExternalAttributes() >> 16) & 0777;
-                Os.chmod(target.getAbsolutePath(), mode != 0 ? mode : 0644);
+                Os.chmod(target.getAbsolutePath(), 0644);
             }
         }
+        applyExecutables();
         createSymlinks();
         File tmp = new File(getPrefixDir(), "tmp");
         tmp.mkdirs();
@@ -146,6 +146,21 @@ public class Bootstrap {
             writer.write(VERSION);
         }
         Log.i(TermDebug.LOG_TAG, "Bootstrap environment installed to " + getPrefixPath());
+    }
+
+    private static void applyExecutables() throws IOException {
+        File list = new File(getPrefixDir(), "EXECUTABLES.txt");
+        if (!list.exists()) {
+            return;
+        }
+        try (BufferedReader reader = new BufferedReader(new FileReader(list))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                if (line.length() > 0) {
+                    Os.chmod(new File(getPrefixDir(), line).getAbsolutePath(), 0755);
+                }
+            }
+        }
     }
 
     private static void createSymlinks() throws IOException {

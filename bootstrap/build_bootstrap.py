@@ -163,6 +163,7 @@ def build_zip(tree, links_file, out_path):
             if ARROW in line:
                 target, rel = line.split(ARROW, 1)
                 symlinks.append((target, rel))
+    executables = []
     with zipfile.ZipFile(out_path, "w", zipfile.ZIP_DEFLATED) as zf:
         for path in sorted(tree.rglob("*")):
             if path.is_dir():
@@ -172,6 +173,11 @@ def build_zip(tree, links_file, out_path):
             info.external_attr = (path.stat().st_mode & 0o777) << 16
             info.compress_type = zipfile.ZIP_DEFLATED
             zf.writestr(info, path.read_bytes())
+            if path.stat().st_mode & 0o111:
+                executables.append(path.relative_to(tree).as_posix())
+        info = zipfile.ZipInfo("usr/EXECUTABLES.txt")
+        info.external_attr = 0o644 << 16
+        zf.writestr(info, "".join(rel + "\n" for rel in executables))
         payload = "".join(f"{target}{ARROW}{rel}\n" for target, rel in sorted(symlinks, key=lambda s: s[1]))
         info = zipfile.ZipInfo("usr/SYMLINKS.txt")
         info.external_attr = 0o644 << 16

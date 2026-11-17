@@ -37,6 +37,14 @@ android {
         }
     }
 
+    // targetSdk 28 is a deliberate product decision (the built-in
+    // environment's executables need the pre-29 data-dir exec policy),
+    // so the Play-oriented ExpiredTargetSdkVersion vital check does
+    // not apply to this app and is the one check disabled here.
+    lint {
+        disable 'ExpiredTargetSdkVersion'
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_21
         targetCompatibility JavaVersion.VERSION_21

@@ -8,6 +8,7 @@
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
     <permission android:name="jackpal.androidterm.permission.RUN_SCRIPT"
                 android:label="@string/perm_run_script"
                 android:description="@string/permdesc_run_script"
@@ -102,6 +103,12 @@
             </intent-filter>
             <meta-data android:name="android.app.foreground_service_type_special_use"
                        android:value="Terminal emulator session management" />
+        </service>
+        <service android:name="FloatingBubbleService"
+                android:exported="false"
+                android:foregroundServiceType="specialUse">
+            <meta-data android:name="android.app.foreground_service_type_special_use"
+                       android:value="Floating keep-alive icon for running terminal sessions" />
         </service>
     <activity
       android:label="@string/activity_shortcut_create"

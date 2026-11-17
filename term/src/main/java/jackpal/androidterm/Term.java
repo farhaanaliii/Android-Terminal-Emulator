@@ -475,7 +475,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         new Thread(() -> {
             try {
                 jackpal.androidterm.util.Bootstrap.install(this);
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 Log.e(TermDebug.LOG_TAG, "Bootstrap install failed", e);
                 jackpal.androidterm.util.Bootstrap.markFailed(this);
             }

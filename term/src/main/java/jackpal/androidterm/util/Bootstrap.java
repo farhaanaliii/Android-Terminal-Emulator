@@ -3,6 +3,7 @@ package jackpal.androidterm.util;
 import android.content.Context;
 import android.content.res.AssetManager;
 import android.os.Build;
+import android.system.ErrnoException;
 import android.system.Os;
 import android.util.Log;
 
@@ -98,7 +99,7 @@ public class Bootstrap {
         }
     }
 
-    public static void install(Context context) throws IOException {
+    public static void install(Context context) throws IOException, ErrnoException {
         File files_dir = context.getFilesDir();
         String files_root = files_dir.getCanonicalPath();
         AssetManager assets = context.getAssets();
@@ -148,7 +149,7 @@ public class Bootstrap {
         Log.i(TermDebug.LOG_TAG, "Bootstrap environment installed to " + getPrefixPath());
     }
 
-    private static void applyExecutables() throws IOException {
+    private static void applyExecutables() throws IOException, ErrnoException {
         File list = new File(getPrefixDir(), "EXECUTABLES.txt");
         if (!list.exists()) {
             return;
@@ -163,7 +164,7 @@ public class Bootstrap {
         }
     }
 
-    private static void createSymlinks() throws IOException {
+    private static void createSymlinks() throws IOException, ErrnoException {
         File list = new File(getPrefixDir(), "SYMLINKS.txt");
         if (!list.exists()) {
             return;

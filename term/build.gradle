@@ -42,9 +42,27 @@ android {
         targetCompatibility JavaVersion.VERSION_21
     }
 
+    // Release signing material lives outside the repo. The keystore
+    // path, passwords and alias come from the environment of the
+    // machine running the build (RELEASE_KEYSTORE_PATH,
+    // RELEASE_KEYSTORE_PASSWORD, RELEASE_KEY_ALIAS,
+    // RELEASE_KEY_PASSWORD); nothing is defaulted or committed, and a
+    // release build without them fails at signing time.
+    signingConfigs {
+        release {
+            if (System.getenv("RELEASE_KEYSTORE_PATH") != null) {
+                storeFile file(System.getenv("RELEASE_KEYSTORE_PATH"))
+                storePassword System.getenv("RELEASE_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("RELEASE_KEY_ALIAS")
+                keyPassword System.getenv("RELEASE_KEY_PASSWORD")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            minifyEnabled false
+            signingConfig signingConfigs.release
+            minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
         }
     }

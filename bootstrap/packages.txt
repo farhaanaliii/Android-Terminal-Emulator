@@ -1,0 +1,18 @@
+# Seed packages for the built-in environment bootstrap.
+# Dependencies are resolved automatically from the Termux package repo.
+# One package name per line.
+bash
+coreutils
+findutils
+grep
+sed
+gawk
+tar
+xz-utils
+gzip
+clang
+make
+openssh
+git
+nano
+ca-certificates

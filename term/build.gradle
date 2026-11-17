@@ -1,5 +1,10 @@
 apply plugin: 'com.android.application'
 
+// The CMake build writes the BusyBox environment asset zips here (see
+// ENV_ASSETS_DIR in src/main/jni/CMakeLists.txt); the directory is added
+// to the assets source set below so the zips ship inside the APK.
+def envAssetsDir = layout.buildDirectory.dir('generated/envAssets').get().asFile
+
 android {
     namespace "jackpal.androidterm"
     compileSdk 35
@@ -15,7 +20,14 @@ android {
         externalNativeBuild {
             cmake {
                 cppFlags ""
+                arguments "-DENV_ASSETS_DIR=${envAssetsDir}"
             }
+        }
+    }
+
+    sourceSets {
+        main {
+            assets.srcDir envAssetsDir
         }
     }
 
@@ -36,6 +48,13 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt')
         }
     }
+}
+
+// The environment asset zips only exist once the native build has run,
+// so asset merging must wait for it.
+afterEvaluate {
+    tasks.findByName('mergeDebugAssets')?.dependsOn('externalNativeBuildDebug')
+    tasks.findByName('mergeReleaseAssets')?.dependsOn('externalNativeBuildRelease')
 }
 
 dependencies {

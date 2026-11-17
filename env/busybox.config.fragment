@@ -1,0 +1,78 @@
+# BusyBox configuration applied on top of defconfig by the CMake build
+# (see env/apply_busybox_config.cmake). Only lines of the form
+# "CONFIG_X=y" and "# CONFIG_X is not set" are applied; anything else is
+# documentation for the entries below.
+#
+# Position-independent executable, as required for executables on Android.
+CONFIG_PIE=y
+# The shell runs compiled-in applets internally and prefers them over PATH
+# lookups, so the BusyBox shell works even in a bare environment.
+CONFIG_FEATURE_SH_STANDALONE=y
+CONFIG_FEATURE_PREFER_APPLETS=y
+#
+# Everything below is disabled because it does not build against bionic,
+# Android's libc, at API 26. Each entry names the exact incompatibility;
+# the applets concerned are also meaningless inside an app sandbox
+# (console fonts, swap, traffic control, a multi-user login system, ...).
+#
+# Bionic has no utmpx database functions (updwtmpx, utmpxname), which
+# libbb's utmp support and halt's wtmp write rely on. runlevel calls
+# utmpxname unguarded, so the applet goes as well.
+# CONFIG_FEATURE_UTMP is not set
+# CONFIG_RUNLEVEL is not set
+# getlogin_r is not declared by bionic.
+# CONFIG_LOGNAME is not set
+# su also needs getusershell/endusershell, which bionic does not have.
+# CONFIG_SU is not set
+# loadfont/setfont and conspy include <sys/kd.h>, which bionic lacks.
+# CONFIG_LOADFONT is not set
+# CONFIG_SETFONT is not set
+# CONFIG_CONSPY is not set
+# gethostid is not declared by bionic.
+# CONFIG_HOSTID is not set
+# The fancy sync flags need syncfs, not declared by bionic as compiled.
+# CONFIG_FEATURE_SYNC_FANCY is not set
+# adjtimex is not provided by bionic.
+# CONFIG_ADJTIMEX is not set
+# seedrng calls getrandom, not declared by bionic as compiled.
+# CONFIG_SEEDRNG is not set
+# ether-wake needs ether_hostton, which bionic does not have.
+# CONFIG_ETHER_WAKE is not set
+# tc's CBQ support uses TCA_CBQ_* constants absent from bionic's
+# <linux/pkt_sched.h>.
+# CONFIG_TC is not set
+# hush needs sigisemptyset and glob/globfree, none of which bionic
+# declares as compiled. ash is the shell this environment uses. The
+# HUSH applet selects the SHELL_HUSH library symbol, so both are off.
+# CONFIG_HUSH is not set
+# CONFIG_SHELL_HUSH is not set
+# The Minix filesystem tools use glibc's setbit/clrbit macros.
+# CONFIG_FSCK_MINIX is not set
+# CONFIG_MKFS_MINIX is not set
+# ipcrm/ipcs define union semun, which bionic's <sys/sem.h> already has.
+# CONFIG_IPCRM is not set
+# CONFIG_IPCS is not set
+# mount calls addmntent/endmntent unguarded; bionic has no mntent API,
+# so mount.c cannot build against it at all. (umount is unaffected.)
+# CONFIG_MOUNT is not set
+# swapon/swapoff and the SWAP_FLAG_* constants are not in bionic.
+# CONFIG_SWAPON is not set
+# CONFIG_SWAPOFF is not set
+# BusyBox defines struct in6_ifreq itself under FEATURE_IPV6, but
+# bionic's headers already define it, so the two collide.
+# CONFIG_FEATURE_IPV6 is not set
+# nslookup cannot build either way: the big variant links -lresolv,
+# which bionic does not have as a separate library, and the small
+# variant uses glibc's _res resolver state, which bionic does not
+# expose. Name resolution still works through the other applets.
+# CONFIG_NSLOOKUP is not set
+# The SHA hardware-acceleration code only exists for x86, but the
+# generic hash code references it whenever these are on, so non-x86
+# builds fail to compile. The portable C implementation is used.
+# CONFIG_SHA1_HWACCEL is not set
+# CONFIG_SHA256_HWACCEL is not set
+# FEATURE_SUID makes every BB_SUID_DROP applet (sh included) call
+# setgid/setuid at startup to drop privileges. Android's app seccomp
+# filter kills the process for those syscalls, and the binary is
+# never installed setuid inside the app sandbox anyway.
+# CONFIG_FEATURE_SUID is not set

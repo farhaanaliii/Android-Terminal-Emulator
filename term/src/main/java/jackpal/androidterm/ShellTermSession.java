@@ -79,9 +79,11 @@ public class ShellTermSession extends GenericTermSession {
         TermSettings settings = mSettings;
 
         boolean use_env = Bootstrap.isInstalled();
-        boolean use_busybox = settings.useBusyBoxShell() && Bootstrap.getBusyBoxFile().exists()
+        boolean use_bash = settings.useBashShell() && Bootstrap.isEnvInstalled() && Bootstrap.getBashFile().exists()
                 && settings.getShell().equals(settings.getFailsafeShell());
-        String path = (use_env || use_busybox) ? Bootstrap.getPrefixPath() + "/bin:/system/bin" : System.getenv("PATH");
+        boolean use_busybox = !use_bash && settings.useBusyBoxShell() && Bootstrap.getBusyBoxFile().exists()
+                && settings.getShell().equals(settings.getFailsafeShell());
+        String path = (use_env || use_busybox || use_bash) ? Bootstrap.getPrefixPath() + "/bin:/system/bin" : System.getenv("PATH");
         if (settings.doPathExtensions()) {
             String appendPath = settings.getAppendPath();
             if (appendPath != null && appendPath.length() > 0) {
@@ -101,7 +103,14 @@ public class ShellTermSession extends GenericTermSession {
         ArrayList<String> env_list = new ArrayList<>();
         env_list.add("TERM=" + settings.getTermType());
         env_list.add("PATH=" + path);
-        if (use_busybox) {
+        if (use_bash) {
+            env_list.add("HOME=" + Bootstrap.getHomePath());
+            env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
+            env_list.add("LD_LIBRARY_PATH=" + Bootstrap.getPrefixPath() + "/lib");
+            env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
+            env_list.add("LANG=C.UTF-8");
+            env_list.add("PS1=\\w $ ");
+        } else if (use_busybox) {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
             env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
@@ -120,7 +129,11 @@ public class ShellTermSession extends GenericTermSession {
 
         String shell = settings.getShell();
         String workingDirectory = null;
-        if (use_busybox) {
+        if (use_bash) {
+            Bootstrap.ensureLayout();
+            shell = Bootstrap.getPrefixPath() + "/bin/bash -l";
+            workingDirectory = Bootstrap.getHomePath();
+        } else if (use_busybox) {
             Bootstrap.ensureLayout();
             shell = Bootstrap.getPrefixPath() + "/bin/busybox sh";
             workingDirectory = Bootstrap.getHomePath();

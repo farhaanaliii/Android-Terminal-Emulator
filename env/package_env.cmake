@@ -9,13 +9,25 @@
 #                              relative to the prefix
 #   usr/EXECUTABLES.txt        files to mark executable after extraction
 #   usr/share/licenses/busybox the GPL-2.0 license text
-#   usr/include, usr/lib       the NDK sysroot headers and the API-level
-#                              libraries/crt objects (x86_64 only for now;
-#                              the aarch64 zip ships the binary and links)
+#   usr/include                the NDK sysroot headers (x86_64 only for
+#                              now; the aarch64 zip ships the binaries
+#                              and links)
+#   usr/lib/<triple>/<api>     the NDK sysroot API-level libraries and
+#                              crt objects, in the NDK's own layout.
+#                              They are link-time stubs and must NOT sit
+#                              directly in usr/lib: a binary whose
+#                              library search path includes usr/lib
+#                              would load the stub libc.so/libdl.so at
+#                              runtime and crash. usr/lib itself holds
+#                              only real runtime libraries.
+#   usr/bin                    plus the tools from TOOLS_DIR (bash, the
+#                              OpenSSH clients, clang), built from
+#                              source by the other ExternalProjects
 #
 # Driven from the ExternalProject install step in
 # term/src/main/jni/CMakeLists.txt. Inputs: BUSYBOX_BIN, BUSYBOX_LINKS,
-# STAGE_DIR, ENV_DIR, ANDROID_ABI, TRIPLE, API, NDK_SYSROOT, OUT_ZIP.
+# STAGE_DIR, ENV_DIR, ANDROID_ABI, TRIPLE, API, NDK_SYSROOT, TOOLS_DIR,
+# OUT_ZIP.
 
 file(REMOVE_RECURSE "${STAGE_DIR}")
 file(MAKE_DIRECTORY
@@ -30,6 +42,17 @@ file(COPY "${BUSYBOX_BIN}" DESTINATION "${STAGE_DIR}/usr/bin"
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 file(COPY "${ENV_DIR}/licenses/busybox-GPL-2.0.txt"
     DESTINATION "${STAGE_DIR}/usr/share/licenses/busybox")
+if(EXISTS "${ENV_DIR}/licenses/bash-GPL-3.0.txt")
+    file(MAKE_DIRECTORY "${STAGE_DIR}/usr/share/licenses/bash")
+    file(COPY "${ENV_DIR}/licenses/bash-GPL-3.0.txt"
+        DESTINATION "${STAGE_DIR}/usr/share/licenses/bash")
+endif()
+
+if(DEFINED TOOLS_DIR AND IS_DIRECTORY "${TOOLS_DIR}/bin")
+    file(COPY "${TOOLS_DIR}/bin/" DESTINATION "${STAGE_DIR}/usr/bin"
+        FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE
+                         GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
+endif()
 
 file(READ "${BUSYBOX_LINKS}" links_text)
 string(REPLACE "\n" ";" link_lines "${links_text}")
@@ -41,14 +64,21 @@ foreach(link_line IN LISTS link_lines)
     endif()
 endforeach()
 file(WRITE "${STAGE_DIR}/usr/SYMLINKS.txt" "${symlinks}")
-file(WRITE "${STAGE_DIR}/usr/EXECUTABLES.txt" "bin/busybox\n")
+
+file(GLOB stage_programs "${STAGE_DIR}/usr/bin/*")
+set(executables "")
+foreach(program IN LISTS stage_programs)
+    get_filename_component(program_name "${program}" NAME)
+    string(APPEND executables "bin/${program_name}\n")
+endforeach()
+file(WRITE "${STAGE_DIR}/usr/EXECUTABLES.txt" "${executables}")
 
 if(ANDROID_ABI STREQUAL "x86_64")
     file(COPY "${NDK_SYSROOT}/usr/include/" DESTINATION "${STAGE_DIR}/usr/include")
-    file(COPY "${NDK_SYSROOT}/usr/lib/${TRIPLE}/${API}/" DESTINATION "${STAGE_DIR}/usr/lib")
+    file(COPY "${NDK_SYSROOT}/usr/lib/${TRIPLE}/${API}/" DESTINATION "${STAGE_DIR}/usr/lib/${TRIPLE}/${API}")
     file(GLOB clang_rt "${NDK_SYSROOT}/usr/lib/clang/*/lib/linux/libclang_rt.builtins-*-android.a")
     if(clang_rt)
-        file(COPY ${clang_rt} DESTINATION "${STAGE_DIR}/usr/lib")
+        file(COPY ${clang_rt} DESTINATION "${STAGE_DIR}/usr/lib/${TRIPLE}/${API}")
     endif()
 endif()
 

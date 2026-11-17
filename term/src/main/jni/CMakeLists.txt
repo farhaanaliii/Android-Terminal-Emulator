@@ -68,6 +68,14 @@ if(ANDROID_ABI STREQUAL "x86_64" OR ANDROID_ABI STREQUAL "arm64-v8a")
     if(NOT DEFINED ENV_ASSETS_DIR)
         set(ENV_ASSETS_DIR "${CMAKE_CURRENT_BINARY_DIR}/env-assets")
     endif()
+    # Tools built from upstream source into the same environment (bash,
+    # and the OpenSSH clients below) install into ENV_TOOLS_DIR;
+    # env/package_env.cmake merges that tree into the environment asset
+    # zip during the busybox install step, which is why every tool
+    # project is a dependency of busybox_external.
+    set(ENV_TOOLS_DIR "${CMAKE_CURRENT_BINARY_DIR}/env-tools")
+    set(ENV_DEVICE_PREFIX "/data/user/0/jackpal.androidterm/files/usr")
+    file(MAKE_DIRECTORY "${ENV_TOOLS_DIR}/bin")
     # The silentoldconfig step in CONFIGURE_COMMAND materializes
     # autoconf.h before the build starts: on a first build otherwise,
     # Kbuild regenerates it mid-build and Makefile.flags evaluates the
@@ -82,8 +90,28 @@ if(ANDROID_ABI STREQUAL "x86_64" OR ANDROID_ABI STREQUAL "arm64-v8a")
         COMMAND "${BUSYBOX_MAKE}" -C <SOURCE_DIR> O=<BINARY_DIR> silentoldconfig
         BUILD_COMMAND "${BUSYBOX_MAKE}" -C <SOURCE_DIR> O=<BINARY_DIR> CROSS_COMPILE=${BUSYBOX_PREFIX} -j${BUSYBOX_JOBS}
         INSTALL_COMMAND "${BUSYBOX_MAKE}" -C <SOURCE_DIR> O=<BINARY_DIR> CROSS_COMPILE=${BUSYBOX_PREFIX} install CONFIG_PREFIX=<BINARY_DIR>/bb_install_root
-        COMMAND ${CMAKE_COMMAND} -DBUSYBOX_BIN=<BINARY_DIR>/busybox -DBUSYBOX_LINKS=<BINARY_DIR>/busybox.links -DSTAGE_DIR=<BINARY_DIR>/env-stage -DENV_DIR=${BUSYBOX_ENV_DIR} -DANDROID_ABI=${ANDROID_ABI} -DTRIPLE=${BUSYBOX_TRIPLE} -DAPI=${BUSYBOX_API} -DNDK_SYSROOT=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot -DOUT_ZIP=${ENV_ASSETS_DIR}/busybox-${BUSYBOX_ARCH}.zip -P ${BUSYBOX_ENV_DIR}/package_env.cmake
+        COMMAND ${CMAKE_COMMAND} -DBUSYBOX_BIN=<BINARY_DIR>/busybox -DBUSYBOX_LINKS=<BINARY_DIR>/busybox.links -DSTAGE_DIR=<BINARY_DIR>/env-stage -DENV_DIR=${BUSYBOX_ENV_DIR} -DANDROID_ABI=${ANDROID_ABI} -DTRIPLE=${BUSYBOX_TRIPLE} -DAPI=${BUSYBOX_API} -DNDK_SYSROOT=${ANDROID_NDK}/toolchains/llvm/prebuilt/linux-x86_64/sysroot -DTOOLS_DIR=${ENV_TOOLS_DIR} -DOUT_ZIP=${ENV_ASSETS_DIR}/busybox-${BUSYBOX_ARCH}.zip -P ${BUSYBOX_ENV_DIR}/package_env.cmake
         BUILD_BYPRODUCTS "${ENV_ASSETS_DIR}/busybox-${BUSYBOX_ARCH}.zip"
     )
     add_dependencies(jackpal-androidterm5 busybox_external)
+
+    # GNU bash, from the upstream release tarball, cross-compiled with
+    # the NDK clang at API ${BUSYBOX_API} like everything else in the
+    # environment. Android has no termcap library, so bash falls back
+    # to its bundled libtermcap; its bundled readline is used as well.
+    # The two bash_cv_* cache variables are the standard answers for
+    # cross builds (configure cannot run its tests): /dev/fd works on
+    # Android, and bionic's getcwd allocates its buffer. The binary is
+    # self-contained (libc/libdl only), so the install step is a copy.
+    ExternalProject_Add(bash_external
+        URL https://ftp.gnu.org/gnu/bash/bash-5.3.tar.gz
+        URL_HASH SHA256=0d5cd86965f869a26cf64f4b71be7b96f90a3ba8b3d74e27e8e9d9d5550f31ba
+        CONFIGURE_COMMAND env CC=${BUSYBOX_LLVM_BIN}/${BUSYBOX_TRIPLE}${BUSYBOX_API}-clang AR=${BUSYBOX_LLVM_BIN}/llvm-ar RANLIB=${BUSYBOX_LLVM_BIN}/llvm-ranlib
+            <SOURCE_DIR>/configure --host=${BUSYBOX_TRIPLE} --prefix=${ENV_DEVICE_PREFIX}
+            --without-bash-malloc --disable-nls bash_cv_dev_fd=standard bash_cv_getcwd_malloc=yes
+        BUILD_COMMAND env PATH=${ANDROID_NDK}/prebuilt/linux-x86_64/bin:$ENV{PATH} "${BUSYBOX_MAKE}" -j${BUSYBOX_JOBS}
+        INSTALL_COMMAND ${CMAKE_COMMAND} -E copy <BINARY_DIR>/bash ${ENV_TOOLS_DIR}/bin/bash
+        BUILD_BYPRODUCTS "${ENV_TOOLS_DIR}/bin/bash"
+    )
+    add_dependencies(busybox_external bash_external)
 endif()

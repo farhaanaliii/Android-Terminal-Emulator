@@ -34,6 +34,32 @@ separate build script and no prebuilt binary from anywhere else.
   `files/usr/bin`, and the BusyBox shell option runs
   `$PREFIX/bin/busybox sh` with `HOME`, `PREFIX`, `PATH`, `TMPDIR` and
   `TERM` set.
+- The NDK sysroot libraries are staged in the NDK's own layout,
+  `usr/lib/<triple>/<api>/`, not flattened into `usr/lib`. They are
+  link-time stubs: a binary whose runtime library search path includes
+  the directory holding them would load the stub `libc.so`/`libdl.so`
+  and crash before `main`. `usr/lib` itself holds only real runtime
+  libraries (OpenSSL's, later the compiler's).
+
+## GNU bash
+
+- **bash 5.3**, from the upstream release tarball
+  **https://ftp.gnu.org/gnu/bash/bash-5.3.tar.gz**
+  (SHA-256 `0d5cd86965f869a26cf64f4b71be7b96f90a3ba8b3d74e27e8e9d9d5550f31ba`),
+  fetched and cross-compiled by CMake (ExternalProject
+  `bash_external`) with the NDK clang at API 26, installed as the real
+  file `usr/bin/bash`.
+- Configure: `--without-bash-malloc --disable-nls` plus the two
+  cross-compilation cache answers `bash_cv_dev_fd=standard` (/dev/fd
+  works on Android) and `bash_cv_getcwd_malloc=yes`. Android has no
+  termcap library, so bash automatically falls back to its bundled
+  libtermcap; its bundled readline is used too. No source patches or
+  shims were needed. The binary links only against libc/libdl.
+- The **Bash shell** setting runs `$PREFIX/bin/bash -l` in `files/home`
+  with `HOME`, `PREFIX`, `PATH`, `LD_LIBRARY_PATH`, `TMPDIR`, `LANG`
+  and `TERM` set, and takes priority over the BusyBox shell setting.
+- License: GNU GPL version 3 — `env/licenses/bash-GPL-3.0.txt`, also
+  shipped in the zip under `usr/share/licenses/bash/`.
 
 ## License
 

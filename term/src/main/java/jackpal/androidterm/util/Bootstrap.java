@@ -30,11 +30,12 @@ import java.util.zip.ZipInputStream;
 public class Bootstrap {
     public static final String PREF_BOOTSTRAP_SHELL = "bootstrap_shell";
     public static final String PREF_BUSYBOX_SHELL = "busybox_shell";
+    public static final String PREF_BASH_SHELL = "bash_shell";
 
     private static final String VERSION = "1";
     private static final String MARKER = ".bootstrap-version";
     private static final String FAILED_MARKER = ".bootstrap-failed";
-    private static final String ENV_VERSION = "1";
+    private static final String ENV_VERSION = "2";
     private static final String ENV_MARKER = ".env-version";
     private static final String ENV_FAILED_MARKER = ".env-failed";
 
@@ -80,6 +81,10 @@ public class Bootstrap {
 
     public static File getBusyBoxFile() {
         return new File(getPrefixDir(), "bin/busybox");
+    }
+
+    public static File getBashFile() {
+        return new File(getPrefixDir(), "bin/bash");
     }
 
     /** Creates the environment layout: files/usr/{bin,lib,include,tmp} and files/home. */

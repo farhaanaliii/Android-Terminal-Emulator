@@ -120,6 +120,8 @@
    <string name="dialog_title_shell_preference">Shell</string>
    <string name="title_bootstrap_shell_preference">Built-in environment shell</string>
    <string name="summary_bootstrap_shell_preference">Run bash from the built-in environment as the default shell.</string>
+   <string name="title_busybox_shell_preference">BusyBox shell</string>
+   <string name="summary_busybox_shell_preference">Run the built-in BusyBox sh as the default shell.</string>
    <string name="msg_installing_environment">Installing built-in environment…</string>
    <string name="bubble_channel_name">Keep-alive bubble</string>
    <string name="bubble_channel_description">Shown while the floating keep-alive icon is active</string>

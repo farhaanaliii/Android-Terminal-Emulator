@@ -59,6 +59,7 @@ public class TermSettings {
 
     private boolean mUseKeyboardShortcuts;
     private boolean mBootstrapShell = false;
+    private boolean mBusyBoxShell = true;
 
     private static final String STATUSBAR_KEY = "statusbar";
     private static final String ACTIONBAR_KEY = "actionbar";
@@ -82,6 +83,7 @@ public class TermSettings {
     private static final String MOUSE_TRACKING = "mouse_tracking";
     private static final String USE_KEYBOARD_SHORTCUTS = "use_keyboard_shortcuts";
     private static final String BOOTSTRAP_SHELL_KEY = Bootstrap.PREF_BOOTSTRAP_SHELL;
+    private static final String BUSYBOX_SHELL_KEY = Bootstrap.PREF_BUSYBOX_SHELL;
 
     public static final int WHITE               = 0xffffffff;
     public static final int BLACK               = 0xff000000;
@@ -214,6 +216,7 @@ public class TermSettings {
         mUseKeyboardShortcuts = readBooleanPref(USE_KEYBOARD_SHORTCUTS,
                 mUseKeyboardShortcuts);
         mBootstrapShell = readBooleanPref(BOOTSTRAP_SHELL_KEY, mBootstrapShell);
+        mBusyBoxShell = readBooleanPref(BUSYBOX_SHELL_KEY, mBusyBoxShell);
         mPrefs = null;  // we leak a Context if we hold on to this
     }
 
@@ -375,5 +378,9 @@ public class TermSettings {
 
     public boolean useBootstrapShell() {
         return mBootstrapShell;
+    }
+
+    public boolean useBusyBoxShell() {
+        return mBusyBoxShell;
     }
 }

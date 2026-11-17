@@ -79,7 +79,9 @@ public class ShellTermSession extends GenericTermSession {
         TermSettings settings = mSettings;
 
         boolean use_env = Bootstrap.isInstalled();
-        String path = use_env ? Bootstrap.getPrefixPath() + "/bin:/system/bin" : System.getenv("PATH");
+        boolean use_busybox = settings.useBusyBoxShell() && Bootstrap.getBusyBoxFile().exists()
+                && settings.getShell().equals(settings.getFailsafeShell());
+        String path = (use_env || use_busybox) ? Bootstrap.getPrefixPath() + "/bin:/system/bin" : System.getenv("PATH");
         if (settings.doPathExtensions()) {
             String appendPath = settings.getAppendPath();
             if (appendPath != null && appendPath.length() > 0) {
@@ -99,7 +101,11 @@ public class ShellTermSession extends GenericTermSession {
         ArrayList<String> env_list = new ArrayList<>();
         env_list.add("TERM=" + settings.getTermType());
         env_list.add("PATH=" + path);
-        if (use_env) {
+        if (use_busybox) {
+            env_list.add("HOME=" + Bootstrap.getHomePath());
+            env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
+            env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
+        } else if (use_env) {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
             env_list.add("LD_LIBRARY_PATH=" + Bootstrap.getPrefixPath() + "/lib");
@@ -112,7 +118,10 @@ public class ShellTermSession extends GenericTermSession {
         String[] env = env_list.toArray(new String[0]);
 
         String shell = settings.getShell();
-        if (use_env && settings.useBootstrapShell() && shell.equals(settings.getFailsafeShell())) {
+        if (use_busybox) {
+            Bootstrap.ensureLayout();
+            shell = Bootstrap.getPrefixPath() + "/bin/busybox sh";
+        } else if (use_env && settings.useBootstrapShell() && shell.equals(settings.getFailsafeShell())) {
             shell = Bootstrap.getPrefixPath() + "/bin/bash -l";
         }
 

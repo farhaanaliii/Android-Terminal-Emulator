@@ -193,6 +193,11 @@
             android:defaultValue="false"
             android:title="@string/title_bootstrap_shell_preference"
             android:summary="@string/summary_bootstrap_shell_preference" />
+    <SwitchPreference
+            android:key="busybox_shell"
+            android:defaultValue="true"
+            android:title="@string/title_busybox_shell_preference"
+            android:summary="@string/summary_busybox_shell_preference" />
     <EditTextPreference
             android:key="initialcommand"
             android:defaultValue="@string/pref_initialcommand_default"

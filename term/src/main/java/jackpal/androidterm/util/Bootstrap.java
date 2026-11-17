@@ -5,6 +5,8 @@ import android.content.res.AssetManager;
 import android.os.Build;
 import android.system.ErrnoException;
 import android.system.Os;
+import android.system.OsConstants;
+import android.system.StructStat;
 import android.util.Log;
 
 import jackpal.androidterm.TermDebug;
@@ -134,6 +136,9 @@ public class Bootstrap {
                 if (!target.getCanonicalPath().startsWith(files_root)) {
                     throw new IOException("Bad zip entry: " + entry.getName());
                 }
+                if (isSymlink(target)) {
+                    target.delete();
+                }
                 if (entry.isDirectory()) {
                     target.mkdirs();
                     continue;
@@ -191,7 +196,7 @@ public class Bootstrap {
     public static void installEnv(Context context) throws IOException, ErrnoException {
         extractZip(context, envAssetName());
         applyExecutables();
-        createSymlinks();
+        createSymlinks(getPrefixDir());
         ensureLayout();
         File tmp = new File(getPrefixDir(), "tmp");
         Os.chmod(tmp.getAbsolutePath(), 0700);
@@ -205,7 +210,7 @@ public class Bootstrap {
     public static void install(Context context) throws IOException, ErrnoException {
         extractZip(context, assetName());
         applyExecutables();
-        createSymlinks();
+        createSymlinks(context.getFilesDir());
         File tmp = new File(getPrefixDir(), "tmp");
         tmp.mkdirs();
         Os.chmod(tmp.getAbsolutePath(), 0700);
@@ -243,7 +248,25 @@ public class Bootstrap {
         }
     }
 
-    private static void createSymlinks() throws IOException, ErrnoException {
+    private static boolean isSymlink(File file) {
+        try {
+            StructStat stat = Os.lstat(file.getAbsolutePath());
+            return (stat.st_mode & OsConstants.S_IFMT) == OsConstants.S_IFLNK;
+        } catch (ErrnoException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Creates the links listed in the prefix's SYMLINKS.txt. The link
+     * paths in that list are relative to base_dir: the files directory
+     * for the bootstrap zip (its entries are rooted at usr/), the prefix
+     * itself for the built-in environment zip (its entries are rooted
+     * at bin/, lib/, ...). Existing files and links are left alone, so
+     * a real file installed by either environment always wins over a
+     * symlink of the same name.
+     */
+    private static void createSymlinks(File base_dir) throws IOException, ErrnoException {
         File list = new File(getPrefixDir(), "SYMLINKS.txt");
         if (!list.exists()) {
             return;
@@ -256,9 +279,9 @@ public class Bootstrap {
                     continue;
                 }
                 String target = line.substring(0, arrow);
-                File link = new File(getPrefixDir(), line.substring(arrow + 1));
+                File link = new File(base_dir, line.substring(arrow + 1));
                 link.getParentFile().mkdirs();
-                if (!link.exists()) {
+                if (!link.exists() && !isSymlink(link)) {
                     Os.symlink(target, link.getAbsolutePath());
                 }
             }

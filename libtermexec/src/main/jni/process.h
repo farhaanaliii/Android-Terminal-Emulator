@@ -25,7 +25,7 @@
 
 extern "C" {
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInternal
-      (JNIEnv *, jclass, jstring, jobjectArray, jobjectArray, jint);
+      (JNIEnv *, jclass, jstring, jobjectArray, jobjectArray, jstring, jint);
 
     JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_waitFor
       (JNIEnv *, jclass, jint);

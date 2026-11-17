@@ -65,7 +65,7 @@ static void closeNonstandardFileDescriptors(int properties_fd, int max_fd) {
     }
 }
 
-static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], char *const envp[], int masterFd)
+static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], char *const envp[], const char *workingDir, int masterFd)
 {
     // same size as Android 1.6 libc/unistd/ptsname_r.c
     char devname[64];
@@ -127,6 +127,10 @@ static int create_subprocess(JNIEnv *env, const char *cmd, char *const argv[], c
 
         closeNonstandardFileDescriptors(properties_fd, max_fd);
 
+        if (workingDir != nullptr && chdir(workingDir) != 0) {
+            _exit(127);
+        }
+
         execve(cmd, argv, envp ? envp : environ);
         _exit(127);
     } else {
@@ -163,10 +167,11 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_waitFor(JNIEnv *env, jc
 }
 
 JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInternal(JNIEnv *env, jclass clazz,
-    jstring cmd, jobjectArray args, jobjectArray envVars, jint masterFd)
+    jstring cmd, jobjectArray args, jobjectArray envVars, jstring workingDirectory, jint masterFd)
 {
     int ptm = 0;
     const char *cmd_str = cmd ? env->GetStringUTFChars(cmd, nullptr) : nullptr;
+    const char *working_dir_str = workingDirectory ? env->GetStringUTFChars(workingDirectory, nullptr) : nullptr;
 
     jsize size = args ? env->GetArrayLength(args) : 0;
     char **argv = nullptr;
@@ -224,10 +229,11 @@ JNIEXPORT jint JNICALL Java_jackpal_androidterm_TermExec_createSubprocessInterna
         envp[size] = nullptr;
     }
 
-    ptm = create_subprocess(env, cmd_str, argv, envp, masterFd);
+    ptm = create_subprocess(env, cmd_str, argv, envp, working_dir_str, masterFd);
 
 cleanup:
     if (cmd) env->ReleaseStringUTFChars(cmd, cmd_str);
+    if (workingDirectory) env->ReleaseStringUTFChars(workingDirectory, working_dir_str);
 
     if (argv) {
         for (char **tmp = argv; *tmp; ++tmp) free(*tmp);

@@ -76,7 +76,7 @@ public class TermExec {
             envArray[i++] = entry.getKey() + "=" + entry.getValue();
         }
 
-        return createSubprocess(ptmxFd, cmd, cmdArray, envArray);
+        return createSubprocess(ptmxFd, cmd, cmdArray, envArray, null);
     }
 
     /**
@@ -93,10 +93,10 @@ public class TermExec {
      */
     public static native void sendSignal(int processId, int signal);
 
-    static int createSubprocess(ParcelFileDescriptor masterFd, String cmd, String[] args, String[] envVars) throws IOException
+    static int createSubprocess(ParcelFileDescriptor masterFd, String cmd, String[] args, String[] envVars, String workingDirectory) throws IOException
     {
-        return createSubprocessInternal(cmd, args, envVars, masterFd.getFd());
+        return createSubprocessInternal(cmd, args, envVars, workingDirectory, masterFd.getFd());
     }
 
-    private static native int createSubprocessInternal(String cmd, String[] args, String[] envVars, int masterFd);
+    private static native int createSubprocessInternal(String cmd, String[] args, String[] envVars, String workingDirectory, int masterFd);
 }

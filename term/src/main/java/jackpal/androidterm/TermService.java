@@ -92,6 +92,7 @@ public class TermService extends Service implements TermSession.FinishCallback
 
     @Override
     public void onCreate() {
+        jackpal.androidterm.util.Bootstrap.init(this);
         // should really belong to the Application class, but we don't use one...
         final SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
         SharedPreferences.Editor editor = prefs.edit();

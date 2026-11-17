@@ -22,6 +22,7 @@ import android.os.Message;
 import android.os.ParcelFileDescriptor;
 import android.util.Log;
 import jackpal.androidterm.compat.FileCompat;
+import jackpal.androidterm.util.Bootstrap;
 import jackpal.androidterm.util.TermSettings;
 
 import java.io.*;
@@ -77,7 +78,8 @@ public class ShellTermSession extends GenericTermSession {
     private void initializeSession() throws IOException {
         TermSettings settings = mSettings;
 
-        String path = System.getenv("PATH");
+        boolean use_env = Bootstrap.isInstalled();
+        String path = use_env ? Bootstrap.getPrefixPath() + "/bin:/system/bin" : System.getenv("PATH");
         if (settings.doPathExtensions()) {
             String appendPath = settings.getAppendPath();
             if (appendPath != null && appendPath.length() > 0) {
@@ -94,12 +96,27 @@ public class ShellTermSession extends GenericTermSession {
         if (settings.verifyPath()) {
             path = checkPath(path);
         }
-        String[] env = new String[3];
-        env[0] = "TERM=" + settings.getTermType();
-        env[1] = "PATH=" + path;
-        env[2] = "HOME=" + settings.getHomePath();
+        ArrayList<String> env_list = new ArrayList<>();
+        env_list.add("TERM=" + settings.getTermType());
+        env_list.add("PATH=" + path);
+        if (use_env) {
+            env_list.add("HOME=" + Bootstrap.getHomePath());
+            env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
+            env_list.add("LD_LIBRARY_PATH=" + Bootstrap.getPrefixPath() + "/lib");
+            env_list.add("TERMINFO=" + Bootstrap.getPrefixPath() + "/share/terminfo");
+            env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
+            env_list.add("LANG=C.UTF-8");
+        } else {
+            env_list.add("HOME=" + settings.getHomePath());
+        }
+        String[] env = env_list.toArray(new String[0]);
 
-        mProcId = createSubprocess(settings.getShell(), env);
+        String shell = settings.getShell();
+        if (use_env && settings.useBootstrapShell() && shell.equals(settings.getFailsafeShell())) {
+            shell = Bootstrap.getPrefixPath() + "/bin/bash -l";
+        }
+
+        mProcId = createSubprocess(shell, env);
     }
 
     private String checkPath(String path) {

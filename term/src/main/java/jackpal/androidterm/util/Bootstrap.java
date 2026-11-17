@@ -121,7 +121,7 @@ public class Bootstrap {
                         out.write(buffer, 0, read);
                     }
                 }
-                int mode = (int) (entry.getExternalAttributes() >> 16) & 0o777;
+                int mode = (int) (entry.getExternalAttributes() >> 16) & 0777;
                 Os.chmod(target.getAbsolutePath(), mode != 0 ? mode : 0644);
             }
         }

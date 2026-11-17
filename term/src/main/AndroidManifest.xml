@@ -110,6 +110,15 @@
             <meta-data android:name="android.app.foreground_service_type_special_use"
                        android:value="Floating keep-alive icon for running terminal sessions" />
         </service>
+        <provider android:name=".HomeDocumentsProvider"
+                android:authorities="jackpal.androidterm.documents"
+                android:exported="true"
+                android:grantUriPermissions="true"
+                android:permission="android.permission.MANAGE_DOCUMENTS">
+            <intent-filter>
+                <action android:name="android.content.action.DOCUMENTS_PROVIDER" />
+            </intent-filter>
+        </provider>
     <activity
       android:label="@string/activity_shortcut_create"
       android:name="jackpal.androidterm.shortcuts.AddShortcut"

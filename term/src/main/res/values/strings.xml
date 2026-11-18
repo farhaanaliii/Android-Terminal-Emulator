@@ -186,6 +186,11 @@
   <string name="summary_mouse_tracking_preference">Whether tap and scroll events should be sent as escape sequences to the terminal.</string>
 
   <string name="title_use_keyboard_shortcuts">Use Keyboard Shortcuts</string>
+  <string name="title_font_file_preference">Custom font</string>
+  <string name="summary_font_file_preference">Use a .ttf or .otf font file for the terminal text</string>
+  <string name="title_font_reset_preference">Reset font to default</string>
+  <string name="font_file_invalid">Please choose a .ttf or .otf font file</string>
+  <string name="font_file_error">Could not read that font file</string>
   <string name="sessions_drawer">Sessions</string>
   <string name="drawer_sessions_title">Sessions</string>
   <string name="drawer_new_session">+ New session</string>

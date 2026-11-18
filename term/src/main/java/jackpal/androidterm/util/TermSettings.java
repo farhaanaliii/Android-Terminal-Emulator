@@ -41,6 +41,7 @@ public class TermSettings {
     private int mFnKeyId;
     private int mUseCookedIME;
     private String mShell;
+    private String mFontPath = "";
     private String mFailsafeShell;
     private String mInitialCommand;
     private String mTermType;
@@ -74,6 +75,7 @@ public class TermSettings {
     private static final String FNKEY_KEY = "fnkey";
     private static final String IME_KEY = "ime";
     private static final String SHELL_KEY = "shell";
+    public static final String FONT_PATH_KEY = "font_path";
     private static final String INITIALCOMMAND_KEY = "initialcommand";
     private static final String TERMTYPE_KEY = "termtype";
     private static final String CLOSEONEXIT_KEY = "close_window_on_process_exit";
@@ -101,6 +103,12 @@ public class TermSettings {
     public static final int SOLARIZED_DARK_FG   = 0xff839496;
     public static final int SOLARIZED_DARK_BG   = 0xff002b36;
     public static final int LINUX_CONSOLE_WHITE = 0xffaaaaaa;
+    public static final int DRACULA_FG          = 0xfff8f8f2;
+    public static final int DRACULA_BG          = 0xff282a36;
+    public static final int GRUVBOX_DARK_FG     = 0xffebdbb2;
+    public static final int GRUVBOX_DARK_BG     = 0xff282828;
+    public static final int MONOKAI_FG          = 0xfff8f8f2;
+    public static final int MONOKAI_BG          = 0xff272822;
 
     // foreground color, background color
     public static final int[][] COLOR_SCHEMES = {
@@ -113,7 +121,10 @@ public class TermSettings {
         {HOLO_BLUE,         BLACK},
         {SOLARIZED_FG,      SOLARIZED_BG},
         {SOLARIZED_DARK_FG, SOLARIZED_DARK_BG},
-        {LINUX_CONSOLE_WHITE, BLACK}
+        {LINUX_CONSOLE_WHITE, BLACK},
+        {DRACULA_FG,        DRACULA_BG},
+        {GRUVBOX_DARK_FG,   GRUVBOX_DARK_BG},
+        {MONOKAI_FG,        MONOKAI_BG}
     };
 
     public static final int ACTION_BAR_MODE_NONE = 0;
@@ -208,6 +219,7 @@ public class TermSettings {
                 FN_KEY_SCHEMES.length - 1);
         mUseCookedIME = readIntPref(IME_KEY, mUseCookedIME, 1);
         mShell = readStringPref(SHELL_KEY, mShell);
+        mFontPath = readStringPref(FONT_PATH_KEY, mFontPath);
         mInitialCommand = readStringPref(INITIALCOMMAND_KEY, mInitialCommand);
         mTermType = readStringPref(TERMTYPE_KEY, mTermType);
         mCloseOnExit = readBooleanPref(CLOSEONEXIT_KEY, mCloseOnExit);
@@ -344,6 +356,10 @@ public class TermSettings {
 
     public String getTermType() {
         return mTermType;
+    }
+
+    public String getFontPath() {
+        return mFontPath;
     }
 
     public boolean closeWindowOnProcessExit() {

@@ -17,6 +17,7 @@
 package jackpal.androidterm;
 
 import android.content.Context;
+import android.graphics.Typeface;
 import android.util.DisplayMetrics;
 
 import jackpal.androidterm.emulatorview.ColorScheme;
@@ -26,6 +27,8 @@ import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.util.TermSettings;
 
 public class TermView extends EmulatorView {
+    private String mAppliedFontPath = "";
+
     public TermView(Context context, TermSession session, DisplayMetrics metrics) {
         super(context, session, metrics);
     }
@@ -35,6 +38,14 @@ public class TermView extends EmulatorView {
             scheme = new ColorScheme(settings.getColorScheme());
         }
 
+        String fontPath = settings.getFontPath();
+        if (!fontPath.equals(mAppliedFontPath)) {
+            mAppliedFontPath = fontPath;
+            // The font file is user-managed storage state: it can be
+            // removed outside the app, and createFromFile throws on a
+            // missing file, so check before loading it.
+            setTypeface(!fontPath.isEmpty() && new java.io.File(fontPath).exists() ? Typeface.createFromFile(fontPath) : Typeface.MONOSPACE);
+        }
         setTextSize(settings.getFontSize());
         setUseCookedIME(settings.useCookedIME());
         setColorScheme(scheme);

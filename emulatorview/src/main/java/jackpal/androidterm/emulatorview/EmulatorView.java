@@ -28,6 +28,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -191,6 +192,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     private boolean mMouseTracking;
 
     private float mDensity;
+    private Typeface mTypeface = Typeface.MONOSPACE;
 
     private float mScaledDensity;
     private static final int SELECT_TEXT_OFFSET_Y = -40;
@@ -1521,10 +1523,15 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         notifyModifierStateChanged();
     }
 
+    public void setTypeface(Typeface typeface) {
+        mTypeface = typeface;
+        updateText();
+    }
+
     private void updateText() {
         ColorScheme scheme = mColorScheme;
         if (mTextSize > 0) {
-            mTextRenderer = new PaintRenderer(mTextSize, scheme);
+            mTextRenderer = new PaintRenderer(mTextSize, scheme, mTypeface);
         }
         else {
             mTextRenderer = new Bitmap4x8FontRenderer(getResources(), scheme);

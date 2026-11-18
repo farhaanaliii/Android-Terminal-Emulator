@@ -118,6 +118,15 @@
                 android:entryValues="@array/entryvalues_color_preference"
                 android:dialogTitle="@string/dialog_title_color_preference" />
 
+        <Preference
+                android:key="font_file"
+                android:title="@string/title_font_file_preference"
+                android:summary="@string/summary_font_file_preference" />
+
+        <Preference
+                android:key="font_reset"
+                android:title="@string/title_font_reset_preference" />
+
         <CheckBoxPreference
                 android:key="utf8_by_default"
                 android:defaultValue="@bool/pref_utf8_by_default_default"

@@ -177,6 +177,12 @@
                 android:summaryOn="@string/use_keyboard_shortcuts_summary_on"
                 android:summaryOff="@string/use_keyboard_shortcuts_summary_off" />
 
+        <SwitchPreference
+                android:key="extra_keys_bar"
+                android:defaultValue="true"
+                android:title="@string/title_extra_keys_preference"
+                android:summary="@string/summary_extra_keys_preference" />
+
         </PreferenceCategory>
 
     <PreferenceCategory

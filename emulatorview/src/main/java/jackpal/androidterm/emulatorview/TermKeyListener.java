@@ -350,6 +350,25 @@ class TermKeyListener {
         updateCursorMode();
     }
 
+    public void handleAltKey(boolean down) {
+        if (down) {
+            mAltKey.onPress();
+        } else {
+            mAltKey.onRelease();
+        }
+        updateCursorMode();
+    }
+
+    public void clearControlKey() {
+        mControlKey = new ModifierKey();
+        updateCursorMode();
+    }
+
+    public void clearAltKey() {
+        mAltKey = new ModifierKey();
+        updateCursorMode();
+    }
+
     public void handleFnKey(boolean down) {
         if (down) {
             mFnKey.onPress();
@@ -612,8 +631,15 @@ class TermKeyListener {
             }
         }
 
-        boolean effectiveControl = chordedCtrl || mHardwareControlKey || (allowToggle && mControlKey.isActive());
-        boolean effectiveFn = allowToggle && mFnKey.isActive();
+        // The Ctrl/Fn modifier state is only ever armed by toggle-style
+        // actions (the designated control/Fn key, the "send control key"
+        // command, or an on-screen extra-keys bar), never by chording a
+        // real Ctrl/Fn key -- those are ignored above.  It must therefore
+        // apply regardless of the letter key event's modifier behavior;
+        // gating it on allowToggle makes the sticky modifiers silently
+        // fail with keyboards whose events report chorded behavior.
+        boolean effectiveControl = chordedCtrl || mHardwareControlKey || mControlKey.isActive();
+        boolean effectiveFn = mFnKey.isActive();
 
         result = mapControlChar(effectiveControl, effectiveFn, result);
 

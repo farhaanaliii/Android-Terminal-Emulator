@@ -60,6 +60,9 @@ import android.os.PowerManager;
 import androidx.preference.PreferenceManager;
 
 import com.google.android.material.appbar.MaterialToolbar;
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.color.MaterialColors;
+import android.content.res.ColorStateList;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.ContextMenu;
@@ -76,6 +79,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.LinearLayout;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -159,6 +163,11 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
     private MaterialToolbar mToolbar;
     private Spinner mWindowSpinner;
+    private LinearLayout mExtraKeysBar;
+    private LinearLayout mExtraKeysSymbolsRow;
+    private MaterialButton mCtrlKeyButton;
+    private MaterialButton mAltKeyButton;
+    private ColorStateList mExtraKeyDefaultTint;
     private int mActionBarMode = TermSettings.ACTION_BAR_MODE_NONE;
 
     private WindowListAdapter mWinListAdapter;
@@ -432,6 +441,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         mToolbar.inflateMenu(R.menu.main);
         mToolbar.setOnMenuItemClickListener(this::onOptionsItemSelected);
         updateLockMenuTitles();
+        buildExtraKeysBar();
         if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES) {
             hideActionBar();
         }
@@ -614,10 +624,103 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         TermView emulatorView = new TermView(this, session, metrics);
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
+        emulatorView.setOnModifierStateChangedListener(this::refreshExtraKeyStates);
         emulatorView.setOnKeyListener(mKeyListener);
         registerForContextMenu(emulatorView);
 
         return emulatorView;
+    }
+
+    private void buildExtraKeysBar() {
+        mExtraKeysBar = findViewById(R.id.extra_keys_bar);
+        LinearLayout row1 = findViewById(R.id.extra_keys_row1);
+        LinearLayout row2 = findViewById(R.id.extra_keys_row2);
+        mExtraKeysSymbolsRow = findViewById(R.id.extra_keys_symbols);
+
+        addExtraKeyButton(row1, "ESC", v -> sendExtraKeyCode(KeyEvent.KEYCODE_ESCAPE));
+        addExtraCharButton(row1, '/');
+        addExtraCharButton(row1, '-');
+        addExtraKeyButton(row1, "HOME", v -> sendExtraKeyCode(KeyEvent.KEYCODE_MOVE_HOME));
+        addExtraKeyButton(row1, "\u2191", v -> sendExtraKeyCode(KeyEvent.KEYCODE_DPAD_UP));
+        addExtraKeyButton(row1, "END", v -> sendExtraKeyCode(KeyEvent.KEYCODE_MOVE_END));
+        addExtraKeyButton(row1, "PGUP", v -> sendExtraKeyCode(KeyEvent.KEYCODE_PAGE_UP));
+
+        addExtraKeyButton(row2, "TAB", v -> sendExtraKeyCode(KeyEvent.KEYCODE_TAB));
+        mCtrlKeyButton = addExtraKeyButton(row2, "CTRL", v -> {
+            EmulatorView view = getCurrentEmulatorView();
+            if (view != null) {
+                view.toggleControlKey();
+                view.requestFocus();
+            }
+        });
+        mAltKeyButton = addExtraKeyButton(row2, "ALT", v -> {
+            EmulatorView view = getCurrentEmulatorView();
+            if (view != null) {
+                view.toggleAltKey();
+                view.requestFocus();
+            }
+        });
+        addExtraKeyButton(row2, "\u2190", v -> sendExtraKeyCode(KeyEvent.KEYCODE_DPAD_LEFT));
+        addExtraKeyButton(row2, "\u2193", v -> sendExtraKeyCode(KeyEvent.KEYCODE_DPAD_DOWN));
+        addExtraKeyButton(row2, "\u2192", v -> sendExtraKeyCode(KeyEvent.KEYCODE_DPAD_RIGHT));
+        addExtraKeyButton(row2, "PGDN", v -> sendExtraKeyCode(KeyEvent.KEYCODE_PAGE_DOWN));
+        addExtraKeyButton(row2, "SYM", v -> mExtraKeysSymbolsRow.setVisibility(mExtraKeysSymbolsRow.getVisibility() == View.VISIBLE ? View.GONE : View.VISIBLE));
+
+        for (char c : new char[]{'|', '~', '`', '\\', '$', '&', '*', '(', ')', '{', '}', '[', ']', '<', '>', '_', ':', ';', '"', '\''}) {
+            addExtraCharButton(mExtraKeysSymbolsRow, c);
+        }
+    }
+
+    private MaterialButton addExtraKeyButton(LinearLayout row, String label, View.OnClickListener listener) {
+        MaterialButton button = new MaterialButton(this);
+        button.setText(label);
+        button.setTextSize(12);
+        button.setMinWidth(0);
+        button.setMinimumWidth(0);
+        button.setInsetTop(0);
+        button.setInsetBottom(0);
+        button.setPadding(0, 0, 0, 0);
+        int height = (int) (44 * getResources().getDisplayMetrics().density);
+        button.setLayoutParams(new LinearLayout.LayoutParams(0, height, 1));
+        button.setOnClickListener(listener);
+        row.addView(button);
+        if (mExtraKeyDefaultTint == null) {
+            mExtraKeyDefaultTint = button.getBackgroundTintList();
+        }
+        return button;
+    }
+
+    private void addExtraCharButton(LinearLayout row, char c) {
+        addExtraKeyButton(row, String.valueOf(c), v -> sendExtraChar(c));
+    }
+
+    private void sendExtraKeyCode(int keyCode) {
+        EmulatorView view = getCurrentEmulatorView();
+        if (view != null) {
+            view.sendKeyCode(keyCode);
+            view.requestFocus();
+        }
+    }
+
+    private void sendExtraChar(char c) {
+        EmulatorView view = getCurrentEmulatorView();
+        if (view != null) {
+            view.sendChar(c);
+            view.requestFocus();
+        }
+    }
+
+    private void refreshExtraKeyStates() {
+        EmulatorView view = getCurrentEmulatorView();
+        if (view == null || mCtrlKeyButton == null || mAltKeyButton == null) {
+            return;
+        }
+        setExtraKeyLatched(mCtrlKeyButton, view.isControlKeyActive());
+        setExtraKeyLatched(mAltKeyButton, view.isAltKeyActive());
+    }
+
+    private void setExtraKeyLatched(MaterialButton button, boolean latched) {
+        button.setBackgroundTintList(latched ? ColorStateList.valueOf(MaterialColors.getColor(button, com.google.android.material.R.attr.colorPrimaryContainer)) : mExtraKeyDefaultTint);
     }
 
     private TermSession getCurrentTermSession() {
@@ -635,6 +738,10 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
     private void updatePrefs() {
         mUseKeyboardShortcuts = mSettings.getUseKeyboardShortcutsFlag();
+
+        if (mExtraKeysBar != null) {
+            mExtraKeysBar.setVisibility(mSettings.showExtraKeysBar() ? View.VISIBLE : View.GONE);
+        }
 
         DisplayMetrics metrics = new DisplayMetrics();
         getWindowManager().getDefaultDisplay().getMetrics(metrics);

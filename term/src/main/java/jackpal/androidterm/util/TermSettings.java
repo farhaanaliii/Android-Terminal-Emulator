@@ -58,6 +58,7 @@ public class TermSettings {
     private boolean mMouseTracking;
 
     private boolean mUseKeyboardShortcuts;
+    private boolean mExtraKeysBar = true;
     private boolean mBootstrapShell = false;
     private boolean mBusyBoxShell = true;
     private boolean mBashShell = true;
@@ -83,6 +84,7 @@ public class TermSettings {
     private static final String ALT_SENDS_ESC = "alt_sends_esc";
     private static final String MOUSE_TRACKING = "mouse_tracking";
     private static final String USE_KEYBOARD_SHORTCUTS = "use_keyboard_shortcuts";
+    private static final String EXTRA_KEYS_BAR_KEY = "extra_keys_bar";
     private static final String BOOTSTRAP_SHELL_KEY = Bootstrap.PREF_BOOTSTRAP_SHELL;
     private static final String BUSYBOX_SHELL_KEY = Bootstrap.PREF_BUSYBOX_SHELL;
     private static final String BASH_SHELL_KEY = Bootstrap.PREF_BASH_SHELL;
@@ -217,6 +219,7 @@ public class TermSettings {
         mMouseTracking = readBooleanPref(MOUSE_TRACKING, mMouseTracking);
         mUseKeyboardShortcuts = readBooleanPref(USE_KEYBOARD_SHORTCUTS,
                 mUseKeyboardShortcuts);
+        mExtraKeysBar = readBooleanPref(EXTRA_KEYS_BAR_KEY, mExtraKeysBar);
         mBootstrapShell = readBooleanPref(BOOTSTRAP_SHELL_KEY, mBootstrapShell);
         mBusyBoxShell = readBooleanPref(BUSYBOX_SHELL_KEY, mBusyBoxShell);
         mBashShell = readBooleanPref(BASH_SHELL_KEY, mBashShell);
@@ -293,6 +296,10 @@ public class TermSettings {
 
     public boolean getUseKeyboardShortcutsFlag() {
         return mUseKeyboardShortcuts;
+    }
+
+    public boolean showExtraKeysBar() {
+        return mExtraKeysBar;
     }
 
     public int getBackKeyCharacter() {

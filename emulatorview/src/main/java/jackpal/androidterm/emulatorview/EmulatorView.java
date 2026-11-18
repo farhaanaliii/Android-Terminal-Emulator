@@ -165,6 +165,27 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     private int mFnKeyCode;
     private boolean mIsControlKeySent = false;
     private boolean mIsFnKeySent = false;
+    private boolean mIsAltKeySent = false;
+
+    /**
+     * Notified when the sticky Ctrl/Alt modifier state changes, so that
+     * external UI (e.g. an extra-keys bar) can refresh its latch display.
+     */
+    public interface OnModifierStateChangedListener {
+        void onModifierStateChanged();
+    }
+
+    private OnModifierStateChangedListener mModifierStateChangedListener;
+
+    public void setOnModifierStateChangedListener(OnModifierStateChangedListener listener) {
+        mModifierStateChangedListener = listener;
+    }
+
+    private void notifyModifierStateChanged() {
+        if (mModifierStateChangedListener != null) {
+            mModifierStateChangedListener.onModifierStateChanged();
+        }
+    }
 
     private boolean mMouseTracking;
 
@@ -667,6 +688,9 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             }
 
             private void mapAndSend(int c) throws IOException {
+                if (isMetaAltActive()) {
+                    mTermSession.write(27);
+                }
                 int result = mKeyListener.mapControlChar(c);
                 if (result < TermKeyListener.KEYCODE_OFFSET) {
                     mTermSession.write(result);
@@ -1427,6 +1451,12 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             mKeyListener.handleFnKey(false);
             invalidate();
         }
+        if (mIsAltKeySent) {
+            mIsAltKeySent = false;
+            mKeyListener.handleAltKey(false);
+            invalidate();
+        }
+        notifyModifierStateChanged();
     }
 
     private void updateText() {
@@ -1620,6 +1650,7 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         mIsControlKeySent = true;
         mKeyListener.handleControlKey(true);
         invalidate();
+        notifyModifierStateChanged();
     }
 
     /**
@@ -1630,6 +1661,105 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         mIsFnKeySent = true;
         mKeyListener.handleFnKey(true);
         invalidate();
+        notifyModifierStateChanged();
+    }
+
+    /**
+     * Send an Alt key event to the terminal.  The Alt modifier acts as a
+     * sticky meta modifier for the next key, like the Ctrl and Fn keys.
+     */
+    public void sendAltKey() {
+        mIsAltKeySent = true;
+        mKeyListener.handleAltKey(true);
+        invalidate();
+        notifyModifierStateChanged();
+    }
+
+    public boolean isControlKeyActive() {
+        return mKeyListener.isCtrlActive();
+    }
+
+    public boolean isAltKeyActive() {
+        return mKeyListener.isAltActive();
+    }
+
+    /**
+     * Whether a latched Alt should act as meta (ESC prefix) for typed text:
+     * always when latched from the extra-keys bar, otherwise when the
+     * "Alt sends Esc" setting is on.
+     */
+    private boolean isMetaAltActive() {
+        return mKeyListener.isAltActive() && (mIsAltKeySent || mKeyListener.getAltSendsEsc());
+    }
+
+    /**
+     * Toggle the sticky Ctrl modifier used by the extra-keys bar.  Tapping
+     * Ctrl while it is latched cancels the latch.
+     */
+    public void toggleControlKey() {
+        if (mKeyListener.isCtrlActive()) {
+            mIsControlKeySent = false;
+            mKeyListener.clearControlKey();
+            invalidate();
+            notifyModifierStateChanged();
+        } else {
+            sendControlKey();
+        }
+    }
+
+    /**
+     * Toggle the sticky Alt modifier used by the extra-keys bar.  Tapping
+     * Alt while it is latched cancels the latch.
+     */
+    public void toggleAltKey() {
+        if (mKeyListener.isAltActive()) {
+            mIsAltKeySent = false;
+            mKeyListener.clearAltKey();
+            invalidate();
+            notifyModifierStateChanged();
+        } else {
+            sendAltKey();
+        }
+    }
+
+    /**
+     * Send a special key (arrow, Home, End, Page Up/Down, Tab, Esc, ...)
+     * to the terminal, honouring any latched Ctrl/Alt modifiers.
+     *
+     * @param keyCode A {@link KeyEvent} key code.
+     */
+    public void sendKeyCode(int keyCode) {
+        try {
+            int metaState = mKeyListener.isAltActive() ? KeyEvent.META_ALT_ON : 0;
+            KeyEvent event = new KeyEvent(0, 0, KeyEvent.ACTION_DOWN, keyCode, 0, metaState);
+            if (!mKeyListener.handleKeyCode(keyCode, event, getKeypadApplicationMode())) {
+                mKeyListener.handleKeyCode(keyCode, null, getKeypadApplicationMode());
+            }
+        } catch (IOException e) {
+            // Ignore I/O exceptions
+        }
+        clearSpecialKeyStatus();
+    }
+
+    /**
+     * Send a single character to the terminal, honouring any latched
+     * Ctrl/Alt/Fn modifiers, exactly as if it had been typed.
+     */
+    public void sendChar(char c) {
+        try {
+            if (isMetaAltActive()) {
+                mTermSession.write(27);
+            }
+            int result = mKeyListener.mapControlChar(c);
+            if (result >= TermKeyListener.KEYCODE_OFFSET) {
+                mKeyListener.handleKeyCode(result - TermKeyListener.KEYCODE_OFFSET, null, getKeypadApplicationMode());
+            } else if (result >= 0) {
+                mTermSession.write(result);
+            }
+        } catch (IOException e) {
+            // Ignore I/O exceptions
+        }
+        clearSpecialKeyStatus();
     }
 
     /**

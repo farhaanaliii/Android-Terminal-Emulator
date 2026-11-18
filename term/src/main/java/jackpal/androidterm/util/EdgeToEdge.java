@@ -13,7 +13,8 @@ public class EdgeToEdge {
         WindowCompat.setDecorFitsSystemWindows(activity.getWindow(), false);
         ViewCompat.setOnApplyWindowInsetsListener(root, (view, window_insets) -> {
             Insets bars = window_insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            view.setPadding(bars.left, bars.top, bars.right, bars.bottom);
+            Insets ime = window_insets.getInsets(WindowInsetsCompat.Type.ime());
+            view.setPadding(bars.left, bars.top, bars.right, Math.max(bars.bottom, ime.bottom));
             return WindowInsetsCompat.CONSUMED;
         });
     }

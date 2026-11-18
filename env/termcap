@@ -1,0 +1,96 @@
+# Termcap database for the bundled environment, in the classic
+# /etc/termcap format BusyBox's termcap reader parses. Entries are
+# kept self-contained (no tc= includes) and cover the capabilities
+# full-screen programs (vi, top, less) actually use: screen clear,
+# cursor addressing, insert/delete line and char, standout and
+# underline modes, alternate screen (ti/te via DECSET 1049) and
+# cursor visibility. The 256-colour entries add Co/pa/AF/AB.
+
+xterm|xterm terminal emulator:\
+	:am:bw:eo:km:mi:ms:xo:\
+	:co#80:it#8:li#24:\
+	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
+	:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:ae=\E(B:al=\E[L:as=\E(0:\
+	:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:\
+	:cr=\r:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=\n:\
+	:ec=\E[%dX:ei=\E[4l:ho=\E[H:im=\E[4h:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\E[3~:kI=\E[2~:\
+	:kN=\E[6~:kP=\E[5~:kb=\177:kd=\EOB:kh=\E[H:kl=\EOD:\
+	:kr=\EOC:ku=\EOA:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:\
+	:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:sf=\n:so=\E[7m:sr=\EM:\
+	:st=\EH:ta=^I:te=\E[?1049l:ti=\E[?1049h:ue=\E[24m:\
+	:up=\E[A:us=\E[4m:ve=\E[?25h:vi=\E[?25l:
+
+xterm-256color|xterm terminal emulator (256 colours):\
+	:am:bw:eo:km:mi:ms:xo:\
+	:co#80:it#8:li#24:Co#256:pa#256:\
+	:AB=\E[48;5;%dm:AF=\E[38;5;%dm:\
+	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
+	:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:ae=\E(B:al=\E[L:as=\E(0:\
+	:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:\
+	:cr=\r:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=\n:\
+	:ec=\E[%dX:ei=\E[4l:ho=\E[H:im=\E[4h:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\E[3~:kI=\E[2~:\
+	:kN=\E[6~:kP=\E[5~:kb=\177:kd=\EOB:kh=\E[H:kl=\EOD:\
+	:kr=\EOC:ku=\EOA:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:\
+	:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:sf=\n:so=\E[7m:sr=\EM:\
+	:st=\EH:ta=^I:te=\E[?1049l:ti=\E[?1049h:ue=\E[24m:\
+	:up=\E[A:us=\E[4m:ve=\E[?25h:vi=\E[?25l:
+
+screen|screen terminal emulator:\
+	:am:bw:eo:km:mi:ms:xo:\
+	:co#80:it#8:li#24:\
+	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
+	:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:ae=\E(B:al=\E[L:as=\E(0:\
+	:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:\
+	:cr=\r:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=\n:\
+	:ec=\E[%dX:ei=\E[4l:ho=\E[H:im=\E[4h:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\E[3~:kI=\E[2~:\
+	:kN=\E[6~:kP=\E[5~:kb=\177:kd=\EOB:kh=\E[H:kl=\EOD:\
+	:kr=\EOC:ku=\EOA:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:\
+	:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:sf=\n:so=\E[7m:sr=\EM:\
+	:st=\EH:ta=^I:te=\E[?1049l:ti=\E[?1049h:ue=\E[24m:\
+	:up=\E[A:us=\E[4m:ve=\E[?25h:vi=\E[?25l:
+
+screen-256color|screen terminal emulator (256 colours):\
+	:am:bw:eo:km:mi:ms:xo:\
+	:co#80:it#8:li#24:Co#256:pa#256:\
+	:AB=\E[48;5;%dm:AF=\E[38;5;%dm:\
+	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
+	:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:ae=\E(B:al=\E[L:as=\E(0:\
+	:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:cm=\E[%i%d;%dH:\
+	:cr=\r:cs=\E[%i%d;%dr:ct=\E[3g:dc=\E[P:dl=\E[M:do=\n:\
+	:ec=\E[%dX:ei=\E[4l:ho=\E[H:im=\E[4h:\
+	:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:k5=\E[15~:k6=\E[17~:\
+	:k7=\E[18~:k8=\E[19~:k9=\E[20~:kD=\E[3~:kI=\E[2~:\
+	:kN=\E[6~:kP=\E[5~:kb=\177:kd=\EOB:kh=\E[H:kl=\EOD:\
+	:kr=\EOC:ku=\EOA:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:\
+	:nd=\E[C:rc=\E8:sc=\E7:se=\E[27m:sf=\n:so=\E[7m:sr=\EM:\
+	:st=\EH:ta=^I:te=\E[?1049l:ti=\E[?1049h:ue=\E[24m:\
+	:up=\E[A:us=\E[4m:ve=\E[?25h:vi=\E[?25l:
+
+vt100|DEC VT100:\
+	:am:bw:mi:ms:xo:\
+	:co#80:it#8:li#24:\
+	:ae=\E(B:as=\E(0:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[2J:\
+	:cm=\E[%i%d;%dH:cr=\r:cs=\E[%i%d;%dr:ct=\E[3g:do=\n:\
+	:ho=\E[H:k1=\EOP:k2=\EOQ:k3=\EOR:k4=\EOS:kb=^H:\
+	:kd=\EOB:kl=\EOD:kr=\EOC:ku=\EOA:le=^H:md=\E[1m:\
+	:me=\E[m:mr=\E[7m:nd=\E[C:rc=\E8:sc=\E7:se=\E[m:\
+	:sf=\n:so=\E[7m:sr=\EM:ta=^I:ue=\E[m:up=\E[A:us=\E[4m:
+
+linux|Linux console:\
+	:am:bw:eo:mi:ms:xo:\
+	:co#80:it#8:li#25:\
+	:AL=\E[%dL:DC=\E[%dP:DL=\E[%dM:DO=\E[%dB:IC=\E[%d@:\
+	:LE=\E[%dD:RI=\E[%dC:UP=\E[%dA:ae=\E(B:al=\E[L:as=\E(0:\
+	:bl=^G:cd=\E[J:ce=\E[K:cl=\E[H\E[J:cm=\E[%i%d;%dH:\
+	:cr=\r:cs=\E[%i%d;%dr:dc=\E[P:dl=\E[M:do=\n:ei=\E[4l:\
+	:ho=\E[H:im=\E[4h:kD=\E[3~:kI=\E[2~:kN=\E[6~:kP=\E[5~:\
+	:kb=\177:kd=\E[B:kh=\E[1~:kl=\E[D:kr=\E[C:ku=\E[A:\
+	:le=^H:md=\E[1m:me=\E[m:mr=\E[7m:nd=\E[C:rc=\E8:sc=\E7:\
+	:se=\E[27m:sf=\n:so=\E[7m:sr=\EM:ta=^I:ue=\E[24m:\
+	:up=\E[A:us=\E[4m:ve=\E[?25h:vi=\E[?25l:

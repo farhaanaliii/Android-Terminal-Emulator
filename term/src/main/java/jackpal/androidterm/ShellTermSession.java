@@ -107,12 +107,16 @@ public class ShellTermSession extends GenericTermSession {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
             env_list.add("LD_LIBRARY_PATH=" + Bootstrap.getPrefixPath() + "/lib");
+            env_list.add("TERMINFO=" + Bootstrap.getPrefixPath() + "/share/terminfo");
+            env_list.add("TERMCAP=" + Bootstrap.getPrefixPath() + "/share/termcap");
             env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
             env_list.add("LANG=C.UTF-8");
             env_list.add("PS1=\\w $ ");
         } else if (use_busybox) {
             env_list.add("HOME=" + Bootstrap.getHomePath());
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
+            env_list.add("TERMINFO=" + Bootstrap.getPrefixPath() + "/share/terminfo");
+            env_list.add("TERMCAP=" + Bootstrap.getPrefixPath() + "/share/termcap");
             env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
             env_list.add("PS1=\\w $ ");
         } else if (use_env) {
@@ -120,6 +124,7 @@ public class ShellTermSession extends GenericTermSession {
             env_list.add("PREFIX=" + Bootstrap.getPrefixPath());
             env_list.add("LD_LIBRARY_PATH=" + Bootstrap.getPrefixPath() + "/lib");
             env_list.add("TERMINFO=" + Bootstrap.getPrefixPath() + "/share/terminfo");
+            env_list.add("TERMCAP=" + Bootstrap.getPrefixPath() + "/share/termcap");
             env_list.add("TMPDIR=" + Bootstrap.getPrefixPath() + "/tmp");
             env_list.add("LANG=C.UTF-8");
         } else {

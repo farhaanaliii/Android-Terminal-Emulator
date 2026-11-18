@@ -42,6 +42,20 @@ file(COPY "${BUSYBOX_BIN}" DESTINATION "${STAGE_DIR}/usr/bin"
                      GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE)
 file(COPY "${ENV_DIR}/licenses/busybox-GPL-2.0.txt"
     DESTINATION "${STAGE_DIR}/usr/share/licenses/busybox")
+# Terminal capability databases: the termcap file BusyBox's
+# full-screen applets (vi, top, less) read via $TERMCAP, and the
+# terminfo tree ncurses programs read via $TERMINFO. The terminfo
+# entries are compiled here from their text source with the build
+# host's tic: the compiled entries are binary files and this
+# repository ships text only.
+file(COPY "${ENV_DIR}/termcap" DESTINATION "${STAGE_DIR}/usr/share")
+find_program(TERMINFO_TIC tic REQUIRED)
+execute_process(
+    COMMAND "${TERMINFO_TIC}" -o "${STAGE_DIR}/usr/share/terminfo" "${ENV_DIR}/terminfo.src"
+    RESULT_VARIABLE tic_result)
+if(NOT tic_result EQUAL 0)
+    message(FATAL_ERROR "tic failed to compile ${ENV_DIR}/terminfo.src")
+endif()
 if(EXISTS "${ENV_DIR}/licenses/bash-GPL-3.0.txt")
     file(MAKE_DIRECTORY "${STAGE_DIR}/usr/share/licenses/bash")
     file(COPY "${ENV_DIR}/licenses/bash-GPL-3.0.txt"

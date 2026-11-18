@@ -21,6 +21,7 @@ import jackpal.androidterm.emulatorview.compat.Patterns;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.regex.Matcher;
 import java.util.Arrays;
 import java.util.Hashtable;
 import java.util.LinkedHashSet;
@@ -29,6 +30,7 @@ import java.util.List;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Typeface;
@@ -44,8 +46,11 @@ import android.text.util.Linkify.MatchFilter;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.ActionMode;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.ScaleGestureDetector;
 import android.view.View;
@@ -205,6 +210,13 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     private int mSelY1 = -1;
     private int mSelX2 = -1;
     private int mSelY2 = -1;
+    private boolean mSmartSelection;
+    private ActionMode mSelectionActionMode;
+    private boolean mDraggingSelection;
+    private int mDragFixedX;
+    private int mDragFixedY;
+    private float mLongPressAnchorX;
+    private float mLongPressAnchorY;
 
     /**
      * Routing alt and meta keyCodes away from the IME allows Alt key processing to work on
@@ -1219,12 +1231,190 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     }
 
     public void onLongPress(MotionEvent e) {
+        int cx = Math.min(Math.max((int) (e.getX() / mCharacterWidth), 0), mColumns - 1);
+        int cy = Math.min(Math.max((int) (e.getY() / mCharacterHeight) + mTopRow, -mEmulator.getScreen().getActiveTranscriptRows()), mRows - 1);
+        if (startSmartSelection(cx, cy, e.getX(), e.getY())) {
+            return;
+        }
+        // Nothing selectable under the finger: fall back to offering
+        // the URLs visible anywhere on screen, then the context menu.
         List<String> urls = getVisibleUrls();
         if (!urls.isEmpty() && mUrlActionListener != null) {
             mUrlActionListener.onShowUrlList(urls);
         } else {
             showContextMenu();
         }
+    }
+
+    private boolean startSmartSelection(int cx, int cy, float anchorX, float anchorY) {
+        int[] unit = findSelectionUnit(cx, cy);
+        if (unit == null) {
+            return false;
+        }
+        if (!mIsSelectingText) {
+            toggleSelectingText();
+        }
+        mSelX1 = unit[0];
+        mSelY1 = unit[1];
+        mSelX2 = unit[2];
+        mSelY2 = unit[3];
+        mSmartSelection = true;
+        // The finger is still down after the long-press. A drag in
+        // the same motion may adjust the selection, but only once
+        // the finger has moved past the touch slop from the anchor,
+        // so plain long-presses keep the whole unit selected.
+        mLongPressAnchorX = anchorX;
+        mLongPressAnchorY = anchorY;
+        mDraggingSelection = false;
+        invalidate();
+        mSelectionActionMode = startActionMode(new SelectionActionModeCallback(), ActionMode.TYPE_FLOATING);
+        return true;
+    }
+
+    private void clearSmartSelection() {
+        mSmartSelection = false;
+        mDraggingSelection = false;
+        mSelectionActionMode = null;
+        if (mIsSelectingText) {
+            toggleSelectingText();
+        }
+        invalidate();
+    }
+
+    private void finishSmartSelection() {
+        if (mSelectionActionMode != null) {
+            mSelectionActionMode.finish();
+        } else {
+            clearSmartSelection();
+        }
+    }
+
+    /**
+     * Find the logical unit at a transcript cell: the whole URL if
+     * the cell is inside one, else a whole file path, else the word.
+     *
+     * @return {x1, y1, x2, y2} in transcript cell coordinates with
+     *         (x2, y2) the unit's last cell, or null when the cell
+     *         holds nothing selectable (whitespace, empty line).
+     */
+    private int[] findSelectionUnit(int cx, int cy) {
+        TranscriptScreen screen = mEmulator.getScreen();
+        int startRow = cy;
+        while (startRow > -screen.getActiveTranscriptRows() && screen.getScriptLineWrap(startRow - 1)) {
+            startRow--;
+        }
+        StringBuilder lineBuilder = new StringBuilder();
+        int row = startRow;
+        while (true) {
+            char[] segment = screen.getScriptLine(row);
+            if (segment == null) {
+                break;
+            }
+            int segmentLength = segment.length;
+            if (!screen.isBasicLine(row)) {
+                for (segmentLength = 0; segmentLength < segment.length && segment[segmentLength] != 0; ++segmentLength) {
+                    // End of valid data is marked by a NUL character
+                }
+            }
+            lineBuilder.append(segment, 0, segmentLength);
+            if (!screen.getScriptLineWrap(row)) {
+                break;
+            }
+            row++;
+        }
+        String line = lineBuilder.toString();
+        int pressIndex = cellToCharIndex(line, cy - startRow, cx);
+        if (pressIndex < 0 || Character.isWhitespace(line.charAt(pressIndex))) {
+            return null;
+        }
+        Matcher urlMatcher = Patterns.WEB_URL.matcher(line);
+        while (urlMatcher.find()) {
+            if (pressIndex >= urlMatcher.start() && pressIndex < urlMatcher.end()) {
+                return charRangeToCells(line, startRow, urlMatcher.start(), urlMatcher.end());
+            }
+        }
+        if (isPathChar(line.charAt(pressIndex))) {
+            int start = pressIndex;
+            int end = pressIndex + 1;
+            while (start > 0 && isPathChar(line.charAt(start - 1))) {
+                start--;
+            }
+            while (end < line.length() && isPathChar(line.charAt(end))) {
+                end++;
+            }
+            if (line.substring(start, end).contains("/")) {
+                return charRangeToCells(line, startRow, start, end);
+            }
+        }
+        if (isWordChar(line.charAt(pressIndex))) {
+            int start = pressIndex;
+            int end = pressIndex + 1;
+            while (start > 0 && isWordChar(line.charAt(start - 1))) {
+                start--;
+            }
+            while (end < line.length() && isWordChar(line.charAt(end))) {
+                end++;
+            }
+            return charRangeToCells(line, startRow, start, end);
+        }
+        return null;
+    }
+
+    private static boolean isPathChar(char c) {
+        return Character.isLetterOrDigit(c) || "._~%/-+@:".indexOf(c) >= 0;
+    }
+
+    private static boolean isWordChar(char c) {
+        return Character.isLetterOrDigit(c) || c == '_' || c == '-' || c == '.';
+    }
+
+    private int cellToCharIndex(String line, int targetRow, int cx) {
+        int col = 0;
+        int row = 0;
+        int i = 0;
+        while (i < line.length()) {
+            char c = line.charAt(i);
+            int width = charWidthAt(line, i);
+            if (row == targetRow && cx >= col && cx < col + width) {
+                return i;
+            }
+            col += width;
+            if (col >= mColumns) {
+                row++;
+                col %= mColumns;
+            }
+            i += Character.isHighSurrogate(c) ? 2 : 1;
+        }
+        return -1;
+    }
+
+    private int[] charRangeToCells(String line, int startRow, int start, int end) {
+        int[] startCell = charIndexToCell(line, start);
+        int[] endCell = charIndexToCell(line, end - 1);
+        return new int[] {startCell[0], startRow + startCell[1], endCell[0], startRow + endCell[1]};
+    }
+
+    private int[] charIndexToCell(String line, int index) {
+        int col = 0;
+        int row = 0;
+        int i = 0;
+        while (i < index) {
+            col += charWidthAt(line, i);
+            if (col >= mColumns) {
+                row++;
+                col %= mColumns;
+            }
+            i += Character.isHighSurrogate(line.charAt(i)) ? 2 : 1;
+        }
+        return new int[] {col, row};
+    }
+
+    private static int charWidthAt(String line, int i) {
+        char c = line.charAt(i);
+        if (Character.isHighSurrogate(c) && i + 1 < line.length()) {
+            return UnicodeTranscript.charWidth(c, line.charAt(i + 1));
+        }
+        return UnicodeTranscript.charWidth(c);
     }
 
     public boolean onScroll(MotionEvent e1, MotionEvent e2,
@@ -1324,6 +1514,9 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     }
 
     private boolean onTouchEventWhileSelectingText(MotionEvent ev) {
+        if (mSmartSelection) {
+            return onTouchEventWhileSmartSelecting(ev);
+        }
         int action = ev.getAction();
         int cx = (int)(ev.getX() / mCharacterWidth);
         int cy = Math.max(0,
@@ -1674,6 +1867,10 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             //createLinks always returns at least 1
             --linkLinesToSkip;
         }
+
+        if (mSmartSelection && mIsSelectingText) {
+            drawSelectionHandles(canvas);
+        }
     }
 
     private void ensureCursorVisible() {
@@ -1689,6 +1886,186 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         }
     }
 
+    private boolean onTouchEventWhileSmartSelecting(MotionEvent ev) {
+        int action = ev.getAction();
+        int cx = (int) (ev.getX() / mCharacterWidth);
+        int cy = (int) (ev.getY() / mCharacterHeight) + mTopRow;
+        switch (action) {
+        case MotionEvent.ACTION_DOWN:
+            if (!isNearHandle(ev, true) && !isNearHandle(ev, false) && !isInSelection(cx, cy)) {
+                finishSmartSelection();
+                return true;
+            }
+            // Drag the nearer end; the other end stays fixed.
+            boolean dragStart = distanceToHandle(ev, true) <= distanceToHandle(ev, false);
+            mDragFixedX = dragStart ? mSelX2 : mSelX1;
+            mDragFixedY = dragStart ? mSelY2 : mSelY1;
+            mDraggingSelection = true;
+            applyDragEnd(cx, cy);
+            invalidate();
+            break;
+        case MotionEvent.ACTION_MOVE:
+            if (!mDraggingSelection) {
+                float dx = ev.getX() - mLongPressAnchorX;
+                float dy = ev.getY() - mLongPressAnchorY;
+                if (dx * dx + dy * dy > Math.pow(24 * mScaledDensity, 2)) {
+                    boolean slopDragStart = Math.abs(cx - mSelX1) + Math.abs(cy - mSelY1) * mColumns <= Math.abs(cx - mSelX2) + Math.abs(cy - mSelY2) * mColumns;
+                    mDragFixedX = slopDragStart ? mSelX2 : mSelX1;
+                    mDragFixedY = slopDragStart ? mSelY2 : mSelY1;
+                    mDraggingSelection = true;
+                }
+            }
+            if (mDraggingSelection) {
+                applyDragEnd(cx, cy);
+                invalidate();
+            }
+            break;
+        case MotionEvent.ACTION_UP:
+            mDraggingSelection = false;
+            if (mSelectionActionMode != null) {
+                mSelectionActionMode.invalidate();
+            }
+            break;
+        default:
+            finishSmartSelection();
+            break;
+        }
+        return true;
+    }
+
+    private void applyDragEnd(int cx, int cy) {
+        cx = Math.min(Math.max(cx, 0), mColumns - 1);
+        cy = Math.min(Math.max(cy, -mEmulator.getScreen().getActiveTranscriptRows()), mRows - 1);
+        if (cy < mDragFixedY || (cy == mDragFixedY && cx < mDragFixedX)) {
+            mSelX1 = cx;
+            mSelY1 = cy;
+            mSelX2 = mDragFixedX;
+            mSelY2 = mDragFixedY;
+        } else {
+            mSelX1 = mDragFixedX;
+            mSelY1 = mDragFixedY;
+            mSelX2 = cx;
+            mSelY2 = cy;
+        }
+    }
+
+    private boolean isInSelection(int cx, int cy) {
+        if (cy < mSelY1 || cy > mSelY2) {
+            return false;
+        }
+        if (cy == mSelY1 && cx < mSelX1) {
+            return false;
+        }
+        return !(cy == mSelY2 && cx > mSelX2);
+    }
+
+    private float handleX(boolean start) {
+        return start ? mSelX1 * mCharacterWidth : (mSelX2 + 1) * mCharacterWidth;
+    }
+
+    private float handleY(boolean start) {
+        return start ? (mSelY1 - mTopRow) * mCharacterHeight : (mSelY2 - mTopRow + 1) * mCharacterHeight;
+    }
+
+    private float distanceToHandle(MotionEvent ev, boolean start) {
+        float dx = ev.getX() - handleX(start);
+        float dy = ev.getY() - handleY(start);
+        return (float) Math.sqrt(dx * dx + dy * dy);
+    }
+
+    private boolean isNearHandle(MotionEvent ev, boolean start) {
+        return distanceToHandle(ev, start) <= 32 * mScaledDensity;
+    }
+
+    private void drawSelectionHandles(Canvas canvas) {
+        Paint paint = new Paint();
+        paint.setAntiAlias(true);
+        paint.setColor(mColorScheme.getForeColor());
+        float radius = 10 * mScaledDensity;
+        if (mSelY1 >= mTopRow && mSelY1 < mTopRow + mRows) {
+            canvas.drawCircle(handleX(true), handleY(true), radius, paint);
+        }
+        if (mSelY2 >= mTopRow && mSelY2 < mTopRow + mRows) {
+            canvas.drawCircle(handleX(false), handleY(false), radius, paint);
+        }
+    }
+
+    private String findUrlInSelection() {
+        Matcher matcher = Patterns.WEB_URL.matcher(getSelectedText());
+        return matcher.find() ? matcher.group() : null;
+    }
+
+    private class SelectionActionModeCallback implements ActionMode.Callback {
+        private static final int ACTION_COPY = 1;
+        private static final int ACTION_SHARE = 2;
+        private static final int ACTION_SELECT_ALL = 3;
+        private static final int ACTION_OPEN_URL = 4;
+        private static final int ACTION_URL_LIST = 5;
+
+        @Override
+        public boolean onCreateActionMode(ActionMode mode, Menu menu) {
+            menu.add(0, ACTION_COPY, 0, android.R.string.copy).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add(0, ACTION_SHARE, 1, R.string.share).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add(0, ACTION_SELECT_ALL, 2, android.R.string.selectAll).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add(0, ACTION_OPEN_URL, 3, R.string.open_url).setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS);
+            menu.add(0, ACTION_URL_LIST, 4, R.string.url_list).setShowAsAction(MenuItem.SHOW_AS_ACTION_NEVER);
+            return true;
+        }
+
+        @Override
+        public boolean onPrepareActionMode(ActionMode mode, Menu menu) {
+            menu.findItem(ACTION_OPEN_URL).setVisible(findUrlInSelection() != null);
+            menu.findItem(ACTION_URL_LIST).setVisible(!getVisibleUrls().isEmpty());
+            return true;
+        }
+
+        @Override
+        public boolean onActionItemClicked(ActionMode mode, MenuItem item) {
+            switch (item.getItemId()) {
+            case ACTION_COPY:
+                ClipboardManager clip = (ClipboardManager) getContext().getApplicationContext().getSystemService(Context.CLIPBOARD_SERVICE);
+                clip.setPrimaryClip(ClipData.newPlainText("simple text", getSelectedText().trim()));
+                mode.finish();
+                return true;
+            case ACTION_SHARE:
+                Intent share = new Intent(Intent.ACTION_SEND);
+                share.setType("text/plain");
+                share.putExtra(Intent.EXTRA_TEXT, getSelectedText().trim());
+                getContext().startActivity(Intent.createChooser(share, null));
+                mode.finish();
+                return true;
+            case ACTION_SELECT_ALL:
+                mSelX1 = 0;
+                mSelY1 = -mEmulator.getScreen().getActiveTranscriptRows();
+                mSelX2 = mColumns - 1;
+                mSelY2 = mRows - 1;
+                invalidate();
+                mode.invalidate();
+                return true;
+            case ACTION_OPEN_URL:
+                String url = findUrlInSelection();
+                if (url != null && mUrlActionListener != null) {
+                    mUrlActionListener.onOpenUrl(url);
+                }
+                mode.finish();
+                return true;
+            case ACTION_URL_LIST:
+                if (mUrlActionListener != null) {
+                    mUrlActionListener.onShowUrlList(getVisibleUrls());
+                }
+                mode.finish();
+                return true;
+            default:
+                return false;
+            }
+        }
+
+        @Override
+        public void onDestroyActionMode(ActionMode mode) {
+            clearSmartSelection();
+        }
+    }
+
     /**
      * Toggle text selection mode in the view.
      */
@@ -1700,6 +2077,14 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             mSelY1 = -1;
             mSelX2 = -1;
             mSelY2 = -1;
+            if (mSmartSelection) {
+                mSmartSelection = false;
+                if (mSelectionActionMode != null) {
+                    ActionMode mode = mSelectionActionMode;
+                    mSelectionActionMode = null;
+                    mode.finish();
+                }
+            }
         }
     }
 

@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="share">Share</string>
+    <string name="open_url">Open URL</string>
+    <string name="url_list">URLs on screen</string>
+</resources>

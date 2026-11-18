@@ -20,8 +20,11 @@ import jackpal.androidterm.emulatorview.compat.KeycodeConstants;
 import jackpal.androidterm.emulatorview.compat.Patterns;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Hashtable;
+import java.util.LinkedHashSet;
+import java.util.List;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
@@ -1216,8 +1219,12 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     }
 
     public void onLongPress(MotionEvent e) {
-        // XXX hook into external gesture listener
-        showContextMenu();
+        List<String> urls = getVisibleUrls();
+        if (!urls.isEmpty() && mUrlActionListener != null) {
+            mUrlActionListener.onShowUrlList(urls);
+        } else {
+            showContextMenu();
+        }
     }
 
     public boolean onScroll(MotionEvent e1, MotionEvent e2,
@@ -1882,6 +1889,38 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
      * @return The URL for the link at the specified screen coordinates, or
      *         null if no link exists there.
      */
+    public interface OnUrlActionListener {
+        void onOpenUrl(String url);
+        void onShowUrlList(List<String> urls);
+    }
+
+    private OnUrlActionListener mUrlActionListener;
+
+    public void setOnUrlActionListener(OnUrlActionListener listener) {
+        mUrlActionListener = listener;
+    }
+
+    /**
+     * All URLs detected in the currently visible rows, in reading
+     * order, deduplicated.  Backed by the same link layer that powers
+     * tap-to-open, so it reflects what is actually on screen.
+     */
+    public List<String> getVisibleUrls() {
+        LinkedHashSet<String> urls = new LinkedHashSet<>();
+        for (int row = 0; row < mRows; row++) {
+            URLSpan[] linkRow = mLinkLayer.get(row);
+            if (linkRow == null) {
+                continue;
+            }
+            for (URLSpan span : linkRow) {
+                if (span != null) {
+                    urls.add(span.getURL());
+                }
+            }
+        }
+        return new ArrayList<>(urls);
+    }
+
     public String getURLat(float x, float y)
     {
         float w = getWidth();

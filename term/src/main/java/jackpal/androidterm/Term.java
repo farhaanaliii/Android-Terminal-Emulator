@@ -636,6 +636,17 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
         emulatorView.setOnModifierStateChangedListener(this::refreshExtraKeyStates);
+        emulatorView.setOnUrlActionListener(new EmulatorView.OnUrlActionListener() {
+            @Override
+            public void onOpenUrl(String url) {
+                execURL(url);
+            }
+
+            @Override
+            public void onShowUrlList(java.util.List<String> urls) {
+                showUrlListDialog(urls);
+            }
+        });
         emulatorView.setOnTextSizeChangedListener(size -> {
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(Term.this);
             prefs.edit().putString("fontsize", Integer.toString(size)).apply();
@@ -1321,6 +1332,13 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
             break;
         }
         getCurrentEmulatorView().requestFocus();
+    }
+
+    private void showUrlListDialog(java.util.List<String> urls) {
+        new AlertDialog.Builder(this)
+                .setTitle(R.string.open_url_title)
+                .setItems(urls.toArray(new String[0]), (dialog, which) -> execURL(urls.get(which)))
+                .show();
     }
 
     /**

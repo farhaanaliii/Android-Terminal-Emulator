@@ -80,7 +80,11 @@ import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
 import android.widget.Spinner;
+
+import androidx.core.view.GravityCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -100,6 +104,10 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     private static final int VIEW_FLIPPER = R.id.view_flipper;
 
     private SessionList mTermSessions;
+    private DrawerLayout mDrawerLayout;
+    private ListView mSessionDrawerList;
+    private WindowListAdapter mSessionDrawerAdapter;
+    private SessionList mSessionDrawerSessions;
 
     private TermSettings mSettings;
 
@@ -400,7 +408,9 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         getOnBackPressedDispatcher().addCallback(this, new androidx.activity.OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                if (!handleBackKey()) {
+                if (mDrawerLayout != null && mDrawerLayout.isDrawerOpen(GravityCompat.START)) {
+                    mDrawerLayout.closeDrawer(GravityCompat.START);
+                } else if (!handleBackKey()) {
                     setEnabled(false);
                     getOnBackPressedDispatcher().onBackPressed();
                     setEnabled(true);
@@ -442,6 +452,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         mToolbar.setOnMenuItemClickListener(this::onOptionsItemSelected);
         updateLockMenuTitles();
         buildExtraKeysBar();
+        buildSessionDrawer();
         if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES) {
             hideActionBar();
         }
@@ -716,6 +727,58 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         }
     }
 
+    private class SessionDrawerAdapter extends WindowListAdapter {
+        SessionDrawerAdapter(SessionList sessions) {
+            super(sessions);
+        }
+
+        @Override
+        public View getView(int position, View convertView, ViewGroup parent) {
+            View child = super.getView(position, convertView, parent);
+            if (position == mViewFlipper.getDisplayedChild()) {
+                child.setBackgroundColor(MaterialColors.getColor(child, com.google.android.material.R.attr.colorSecondaryContainer));
+            }
+            // ListView item clicks are not delivered to rows containing
+            // focusable children (the close button), so wire the row
+            // click directly, as the WindowList screen's adapter does.
+            child.setOnClickListener(v -> {
+                // The toolbar spinner's selection listener performs the
+                // actual window switch, creating the view if needed.
+                mWindowSpinner.setSelection(position);
+                mDrawerLayout.closeDrawer(GravityCompat.START);
+            });
+            return child;
+        }
+    }
+
+    private void buildSessionDrawer() {
+        mDrawerLayout = findViewById(R.id.drawer_layout);
+        mSessionDrawerList = findViewById(R.id.session_drawer_list);
+        findViewById(R.id.session_drawer_new).setOnClickListener(v -> {
+            doCreateNewWindow();
+            mDrawerLayout.closeDrawer(GravityCompat.START);
+        });
+        mDrawerLayout.addDrawerListener(new DrawerLayout.SimpleDrawerListener() {
+            @Override
+            public void onDrawerOpened(View drawerView) {
+                refreshSessionDrawer();
+            }
+        });
+    }
+
+    private void refreshSessionDrawer() {
+        if (mTermSessions == null) {
+            return;
+        }
+        if (mSessionDrawerAdapter == null || mSessionDrawerSessions != mTermSessions) {
+            mSessionDrawerAdapter = new SessionDrawerAdapter(mTermSessions);
+            mSessionDrawerSessions = mTermSessions;
+            mSessionDrawerList.setAdapter(mSessionDrawerAdapter);
+        }
+        mSessionDrawerAdapter.notifyDataSetChanged();
+        mSessionDrawerList.setItemChecked(mViewFlipper.getDisplayedChild(), true);
+    }
+
     private void refreshExtraKeyStates() {
         EmulatorView view = getCurrentEmulatorView();
         if (view == null || mCtrlKeyButton == null || mAltKeyButton == null) {
@@ -891,6 +954,8 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
             confirmCloseWindow();
         } else if (id == R.id.menu_window_list) {
             mChooseWindowLauncher.launch(new Intent(this, WindowList.class));
+        } else if (id == R.id.menu_sessions_drawer) {
+            mDrawerLayout.openDrawer(GravityCompat.START);
         } else if (id == R.id.menu_reset) {
             doResetTerminal();
             Toast toast = Toast.makeText(this,R.string.reset_toast_notification,Toast.LENGTH_LONG);

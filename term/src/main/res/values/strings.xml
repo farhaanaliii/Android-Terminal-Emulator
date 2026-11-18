@@ -186,6 +186,9 @@
   <string name="summary_mouse_tracking_preference">Whether tap and scroll events should be sent as escape sequences to the terminal.</string>
 
   <string name="title_use_keyboard_shortcuts">Use Keyboard Shortcuts</string>
+  <string name="sessions_drawer">Sessions</string>
+  <string name="drawer_sessions_title">Sessions</string>
+  <string name="drawer_new_session">+ New session</string>
   <string name="title_extra_keys_preference">Extra keys bar</string>
   <string name="summary_extra_keys_preference">Show a Termux-style bar with Esc, Tab, Ctrl, Alt, arrow and symbol keys above the keyboard.</string>
   <string name="use_keyboard_shortcuts_summary_on">Ctrl-Tab: cycle window, Ctrl-Shift-N: new window, Ctrl-Shift-V: paste.</string>

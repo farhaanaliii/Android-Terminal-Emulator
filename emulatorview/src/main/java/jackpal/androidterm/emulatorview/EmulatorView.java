@@ -43,6 +43,7 @@ import android.util.Log;
 import android.view.GestureDetector;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
+import android.view.ScaleGestureDetector;
 import android.view.View;
 import android.view.inputmethod.BaseInputConnection;
 import android.view.inputmethod.CompletionInfo;
@@ -224,7 +225,27 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     };
 
     private GestureDetector mGestureDetector;
+    private ScaleGestureDetector mScaleGestureDetector;
     private GestureDetector.OnGestureListener mExtGestureListener;
+
+    /**
+     * Notified when a pinch gesture changes the text size, so the new size
+     * can be persisted to the font-size setting.
+     */
+    public interface OnTextSizeChangedListener {
+        void onTextSizeChanged(int newTextSize);
+    }
+
+    private OnTextSizeChangedListener mTextSizeChangedListener;
+
+    public void setOnTextSizeChangedListener(OnTextSizeChangedListener listener) {
+        mTextSizeChangedListener = listener;
+    }
+
+    /** Smallest text size (pt) a pinch may select; matches the settings list. */
+    private static final int MIN_FONT_SIZE = 6;
+    /** Largest text size (pt) a pinch may select; matches the settings clamp. */
+    private static final int MAX_FONT_SIZE = 288;
     private Scroller mScroller;
     private Runnable mFlingRunner = new Runnable() {
         public void run() {
@@ -555,6 +576,36 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         // TODO: See if we want to use the API level 11 constructor to get new flywheel feature.
         mScroller = new Scroller(context);
         mMouseTrackingFlingRunner.mScroller = new Scroller(context);
+        mScaleGestureDetector = new ScaleGestureDetector(context, new ScaleGestureDetector.SimpleOnScaleGestureListener() {
+            private float mAccumulatedScale = 1.0f;
+
+            @Override
+            public boolean onScaleBegin(ScaleGestureDetector detector) {
+                mAccumulatedScale = 1.0f;
+                return true;
+            }
+
+            @Override
+            public boolean onScale(ScaleGestureDetector detector) {
+                mAccumulatedScale *= detector.getScaleFactor();
+                if (mAccumulatedScale > 1.15f || mAccumulatedScale < 0.87f) {
+                    int step = mAccumulatedScale > 1.0f ? 1 : -1;
+                    mAccumulatedScale = 1.0f;
+                    setTextSizeFromPinch(getTextSize() + step);
+                }
+                return true;
+            }
+        });
+    }
+
+    private void setTextSizeFromPinch(int newSize) {
+        int clamped = Math.max(MIN_FONT_SIZE, Math.min(MAX_FONT_SIZE, newSize));
+        if (clamped != getTextSize()) {
+            setTextSize(clamped);
+            if (mTextSizeChangedListener != null) {
+                mTextSizeChangedListener.onTextSizeChanged(clamped);
+            }
+        }
     }
 
     /**
@@ -1098,6 +1149,13 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     }
 
     /**
+     * Get the current text size, in density-independent pixels (points).
+     */
+    public int getTextSize() {
+        return Math.round(mTextSize / mDensity);
+    }
+
+    /**
      * Sets the IME mode ("cooked" or "raw").
      *
      * @param useCookedIME Whether the IME should be used in cooked mode.
@@ -1248,6 +1306,10 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         if (mIsSelectingText) {
             return onTouchEventWhileSelectingText(ev);
         } else {
+            mScaleGestureDetector.onTouchEvent(ev);
+            if (mScaleGestureDetector.isInProgress()) {
+                return true;
+            }
             return mGestureDetector.onTouchEvent(ev);
         }
     }

@@ -625,6 +625,12 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
         emulatorView.setExtGestureListener(new EmulatorViewGestureListener(emulatorView));
         emulatorView.setOnModifierStateChangedListener(this::refreshExtraKeyStates);
+        emulatorView.setOnTextSizeChangedListener(size -> {
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(Term.this);
+            prefs.edit().putString("fontsize", Integer.toString(size)).apply();
+            mSettings.readPrefs(prefs);
+            updatePrefs();
+        });
         emulatorView.setOnKeyListener(mKeyListener);
         registerForContextMenu(emulatorView);
 

@@ -187,6 +187,11 @@
 
   <string name="title_use_keyboard_shortcuts">Use Keyboard Shortcuts</string>
   <string name="open_url_title">Open URL</string>
+  <string name="search_transcript">Search transcript</string>
+  <string name="search_hint">Search transcript</string>
+  <string name="search_previous">↑ Prev</string>
+  <string name="search_next">↓ Next</string>
+  <string name="search_close">✕</string>
   <string name="title_font_file_preference">Custom font</string>
   <string name="summary_font_file_preference">Use a .ttf or .otf font file for the terminal text</string>
   <string name="title_font_reset_preference">Reset font to default</string>

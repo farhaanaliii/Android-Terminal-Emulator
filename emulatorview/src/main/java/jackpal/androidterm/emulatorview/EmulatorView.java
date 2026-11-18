@@ -21,6 +21,7 @@ import jackpal.androidterm.emulatorview.compat.Patterns;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.Arrays;
 import java.util.Hashtable;
@@ -210,6 +211,9 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
     private int mSelY1 = -1;
     private int mSelX2 = -1;
     private int mSelY2 = -1;
+    private final ArrayList<int[]> mSearchMatches = new ArrayList<>();
+    private int mCurrentSearchMatch = -1;
+    private String mSearchQuery;
     private boolean mSmartSelection;
     private ActionMode mSelectionActionMode;
     private boolean mDraggingSelection;
@@ -1868,6 +1872,10 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
             --linkLinesToSkip;
         }
 
+        if (mSearchQuery != null && !mSearchQuery.isEmpty()) {
+            drawSearchMatches(canvas);
+        }
+
         if (mSmartSelection && mIsSelectingText) {
             drawSelectionHandles(canvas);
         }
@@ -1975,6 +1983,123 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
 
     private boolean isNearHandle(MotionEvent ev, boolean start) {
         return distanceToHandle(ev, start) <= 32 * mScaledDensity;
+    }
+
+    /**
+     * Search the whole transcript (scrollback plus visible rows)
+     * for a query, highlighting every match.
+     *
+     * @return the number of matches found.
+     */
+    public int setSearchQuery(String query) {
+        mSearchMatches.clear();
+        mCurrentSearchMatch = -1;
+        mSearchQuery = query;
+        if (query == null || query.isEmpty()) {
+            invalidate();
+            return 0;
+        }
+        String needle = query.toLowerCase(Locale.US);
+        TranscriptScreen screen = mEmulator.getScreen();
+        int y = -screen.getActiveTranscriptRows();
+        while (y < mRows) {
+            StringBuilder lineBuilder = new StringBuilder();
+            int row = y;
+            while (true) {
+                char[] segment = screen.getScriptLine(row);
+                if (segment == null) {
+                    break;
+                }
+                int segmentLength = segment.length;
+                if (!screen.isBasicLine(row)) {
+                    for (segmentLength = 0; segmentLength < segment.length && segment[segmentLength] != 0; ++segmentLength) {
+                        // End of valid data is marked by a NUL character
+                    }
+                }
+                lineBuilder.append(segment, 0, segmentLength);
+                if (!screen.getScriptLineWrap(row)) {
+                    break;
+                }
+                row++;
+            }
+            String line = lineBuilder.toString();
+            String lowerLine = line.toLowerCase(Locale.US);
+            int from = 0;
+            while (true) {
+                int index = lowerLine.indexOf(needle, from);
+                if (index < 0) {
+                    break;
+                }
+                int[] startCell = charIndexToCell(line, index);
+                int[] endCell = charIndexToCell(line, index + needle.length() - 1);
+                mSearchMatches.add(new int[] {startCell[0], y + startCell[1], endCell[0], y + endCell[1]});
+                from = index + 1;
+            }
+            y = row + 1;
+        }
+        if (!mSearchMatches.isEmpty()) {
+            mCurrentSearchMatch = 0;
+            scrollToSearchMatch();
+        }
+        invalidate();
+        return mSearchMatches.size();
+    }
+
+    public void clearSearch() {
+        mSearchQuery = null;
+        mSearchMatches.clear();
+        mCurrentSearchMatch = -1;
+        invalidate();
+    }
+
+    public int getSearchMatchCount() {
+        return mSearchMatches.size();
+    }
+
+    public int getCurrentSearchMatchIndex() {
+        return mCurrentSearchMatch;
+    }
+
+    public void findNextSearchMatch() {
+        if (mSearchMatches.isEmpty()) {
+            return;
+        }
+        mCurrentSearchMatch = (mCurrentSearchMatch + 1) % mSearchMatches.size();
+        scrollToSearchMatch();
+        invalidate();
+    }
+
+    public void findPreviousSearchMatch() {
+        if (mSearchMatches.isEmpty()) {
+            return;
+        }
+        mCurrentSearchMatch = (mCurrentSearchMatch - 1 + mSearchMatches.size()) % mSearchMatches.size();
+        scrollToSearchMatch();
+        invalidate();
+    }
+
+    private void scrollToSearchMatch() {
+        int row = mSearchMatches.get(mCurrentSearchMatch)[1];
+        if (row < mTopRow || row >= mTopRow + mRows) {
+            int totalRows = mEmulator.getScreen().getActiveTranscriptRows();
+            mTopRow = Math.max(-totalRows, Math.min(0, row - mRows / 2));
+        }
+    }
+
+    private void drawSearchMatches(Canvas canvas) {
+        Paint paint = new Paint();
+        for (int i = 0; i < mSearchMatches.size(); i++) {
+            int[] match = mSearchMatches.get(i);
+            paint.setColor(i == mCurrentSearchMatch ? 0xFFF9A825 : 0x66FFEB3B);
+            for (int row = match[1]; row <= match[3]; row++) {
+                if (row < mTopRow || row >= mTopRow + mRows) {
+                    continue;
+                }
+                int x1 = row == match[1] ? match[0] : 0;
+                int x2 = row == match[3] ? match[2] : mColumns - 1;
+                canvas.drawRect(x1 * mCharacterWidth, (row - mTopRow) * mCharacterHeight, (x2 + 1) * mCharacterWidth, (row - mTopRow + 1) * mCharacterHeight, paint);
+            }
+        }
     }
 
     private void drawSelectionHandles(Canvas canvas) {

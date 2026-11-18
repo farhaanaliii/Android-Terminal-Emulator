@@ -30,6 +30,8 @@
         android:icon="@drawable/ic_menu_windows" />
     <item android:id="@+id/menu_sessions_drawer"
         android:title="@string/sessions_drawer" />
+    <item android:id="@+id/menu_search"
+        android:title="@string/search_transcript" />
     <item android:id="@+id/menu_toggle_soft_keyboard"
         android:title="@string/toggle_soft_keyboard" />
     <item android:id="@+id/menu_special_keys"

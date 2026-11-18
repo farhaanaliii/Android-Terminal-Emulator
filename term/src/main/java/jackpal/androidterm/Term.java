@@ -16,7 +16,9 @@
 
 package jackpal.androidterm;
 
+import android.text.Editable;
 import android.text.TextUtils;
+import android.text.TextWatcher;
 import jackpal.androidterm.emulatorview.EmulatorView;
 import jackpal.androidterm.emulatorview.TermSession;
 import jackpal.androidterm.emulatorview.UpdateCallback;
@@ -79,6 +81,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.AdapterView;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
@@ -106,6 +109,10 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     private SessionList mTermSessions;
     private DrawerLayout mDrawerLayout;
     private ListView mSessionDrawerList;
+    private View mSearchBar;
+    private EditText mSearchQuery;
+    private TextView mSearchCount;
+    private EmulatorView mSearchView;
     private WindowListAdapter mSessionDrawerAdapter;
     private SessionList mSessionDrawerSessions;
 
@@ -453,6 +460,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         updateLockMenuTitles();
         buildExtraKeysBar();
         buildSessionDrawer();
+        buildSearchBar();
         if (mActionBarMode == TermSettings.ACTION_BAR_MODE_HIDES) {
             hideActionBar();
         }
@@ -777,6 +785,78 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         });
     }
 
+    private void buildSearchBar() {
+        mSearchBar = findViewById(R.id.search_bar);
+        mSearchQuery = findViewById(R.id.search_query);
+        mSearchCount = findViewById(R.id.search_count);
+        mSearchQuery.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable s) {
+                runTranscriptSearch();
+            }
+        });
+        findViewById(R.id.search_next).setOnClickListener(v -> {
+            if (mSearchView != null) {
+                mSearchView.findNextSearchMatch();
+                updateSearchCount();
+            }
+        });
+        findViewById(R.id.search_prev).setOnClickListener(v -> {
+            if (mSearchView != null) {
+                mSearchView.findPreviousSearchMatch();
+                updateSearchCount();
+            }
+        });
+        findViewById(R.id.search_close).setOnClickListener(v -> closeSearchBar());
+    }
+
+    private void openSearchBar() {
+        mSearchBar.setVisibility(View.VISIBLE);
+        mSearchQuery.requestFocus();
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(mSearchQuery, InputMethodManager.SHOW_IMPLICIT);
+        runTranscriptSearch();
+    }
+
+    private void closeSearchBar() {
+        if (mSearchView != null) {
+            mSearchView.clearSearch();
+            mSearchView = null;
+        }
+        mSearchBar.setVisibility(View.GONE);
+    }
+
+    private void runTranscriptSearch() {
+        EmulatorView view = getCurrentEmulatorView();
+        if (view == null) {
+            return;
+        }
+        if (mSearchView != null && mSearchView != view) {
+            mSearchView.clearSearch();
+        }
+        mSearchView = view;
+        mSearchView.setSearchQuery(mSearchQuery.getText().toString());
+        updateSearchCount();
+    }
+
+    private void updateSearchCount() {
+        if (mSearchView == null) {
+            mSearchCount.setText("");
+            return;
+        }
+        int total = mSearchView.getSearchMatchCount();
+        int current = mSearchView.getCurrentSearchMatchIndex();
+        mSearchCount.setText(total == 0 ? "0/0" : (current + 1) + "/" + total);
+    }
+
     private void refreshSessionDrawer() {
         if (mTermSessions == null) {
             return;
@@ -967,6 +1047,8 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
             mChooseWindowLauncher.launch(new Intent(this, WindowList.class));
         } else if (id == R.id.menu_sessions_drawer) {
             mDrawerLayout.openDrawer(GravityCompat.START);
+        } else if (id == R.id.menu_search) {
+            openSearchBar();
         } else if (id == R.id.menu_reset) {
             doResetTerminal();
             Toast toast = Toast.makeText(this,R.string.reset_toast_notification,Toast.LENGTH_LONG);

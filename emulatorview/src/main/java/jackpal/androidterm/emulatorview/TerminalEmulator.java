@@ -154,6 +154,12 @@ class TerminalEmulator {
     private static final int ESC_RIGHT_SQUARE_BRACKET_ESC = 9;
 
     /**
+     * Escape processing state: ESC [ ... SP (CSI with a space
+     * intermediate byte, e.g. DECSCUSR's ESC [ Pn SP q)
+     */
+    private static final int ESC_CSI_SPACE = 10;
+
+    /**
      * True if the current escape sequence should continue, false if the current
      * escape sequence should be terminated. Used when parsing a single
      * character.
@@ -634,6 +640,17 @@ class TerminalEmulator {
         return (mDecFlags & K_SHOW_CURSOR_MASK) != 0;
     }
 
+    /**
+     * The cursor style last set by DECSCUSR (ESC [ Pn SP q):
+     * 0/1 blinking block, 2 steady block, 3 blinking underline,
+     * 4 steady underline, 5 blinking bar, 6 steady bar.
+     */
+    private int mCursorStyle;
+
+    public final int getCursorStyle() {
+        return mCursorStyle;
+    }
+
     public final boolean getKeypadApplicationMode() {
         return mbKeypadApplicationMode;
     }
@@ -799,6 +816,10 @@ class TerminalEmulator {
                 doEscRightSquareBracketEsc(b);
                 break;
 
+            case ESC_CSI_SPACE:
+                doEscCsiSpace(b);
+                break;
+
             default:
                 unknownSequence(b);
                 break;
@@ -929,9 +950,19 @@ class TerminalEmulator {
                 break;
             case 47:
             case 1047:
-            case 1049:
                 if (mAltBuffer != null) {
                     mScreen = mAltBuffer;
+                    blockClear(0, 0, mColumns, mRows);
+                }
+                break;
+            case 1049:
+                if (mAltBuffer != null) {
+                    // 1049 = save cursor (1048) + switch to the
+                    // alternate screen, cleared (1047).
+                    mSavedCursorRow = mCursorRow;
+                    mSavedCursorCol = mCursorCol;
+                    mScreen = mAltBuffer;
+                    blockClear(0, 0, mColumns, mRows);
                 }
                 break;
             }
@@ -948,8 +979,11 @@ class TerminalEmulator {
                 break;
             case 47:
             case 1047:
+                mScreen = mMainBuffer;
+                break;
             case 1049:
                 mScreen = mMainBuffer;
+                setCursorRowCol(mSavedCursorRow, mSavedCursorCol);
                 break;
             }
             if (arg >= 1000 && arg <= 1003) {
@@ -1164,9 +1198,28 @@ class TerminalEmulator {
         }
     }
 
+    private void doEscCsiSpace(byte b) {
+        switch (b) {
+        case 'q': // ESC [ Pn SP q - DECSCUSR - set cursor style
+            int style = getArg0(0);
+            if (style >= 0 && style <= 6) {
+                mCursorStyle = style;
+            }
+            break;
+
+        default:
+            unknownSequence(b);
+            break;
+        }
+    }
+
     private void doEscLeftSquareBracket(byte b) {
         // CSI
         switch (b) {
+        case ' ': // ESC [ Pn SP - intermediate byte, e.g. DECSCUSR
+            continueSequence(ESC_CSI_SPACE);
+            break;
+
         case '@': // ESC [ Pn @ - ICH Insert Characters
         {
             int charsAfterCursor = mColumns - mCursorCol;
@@ -1447,6 +1500,9 @@ class TerminalEmulator {
                     mForeColor = color;
                 }
                 i += 2;
+            } else if (code == 38 && i+4 <= mArgIndex && mArgs[i+1] == 2) { // foreground truecolor, quantized to the 256-colour palette
+                mForeColor = rgbTo256Color(mArgs[i+2], mArgs[i+3], mArgs[i+4]);
+                i += 4;
             } else if (code == 39) { // set default text color
                 mForeColor = mDefaultForeColor;
             } else if (code >= 40 && code <= 47) { // background color
@@ -1458,6 +1514,9 @@ class TerminalEmulator {
                     mBackColor = color;
                 }
                 i += 2;
+            } else if (code == 48 && i+4 <= mArgIndex && mArgs[i+1] == 2) { // background truecolor, quantized to the 256-colour palette
+                mBackColor = rgbTo256Color(mArgs[i+2], mArgs[i+3], mArgs[i+4]);
+                i += 4;
             } else if (code == 49) { // set default background color
                 mBackColor = mDefaultBackColor;
             } else if (code >= 90 && code <= 97) { // bright foreground color
@@ -1470,6 +1529,31 @@ class TerminalEmulator {
                 }
             }
         }
+    }
+
+    /**
+     * Quantize a 24-bit RGB colour to the nearest entry of the
+     * xterm 256-colour palette (colour cube or greyscale ramp),
+     * the closest representation the renderer's palette can carry.
+     */
+    private static int rgbTo256Color(int r, int g, int b) {
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+        if (r == g && g == b) {
+            if (r < 8) {
+                return 16;
+            }
+            if (r > 248) {
+                return 231;
+            }
+            return 232 + Math.min(23, (r - 8) / 10);
+        }
+        return 16 + 36 * colorComponent(r) + 6 * colorComponent(g) + colorComponent(b);
+    }
+
+    private static int colorComponent(int value) {
+        return value < 48 ? 0 : value < 115 ? 1 : Math.min(5, (value - 35) / 40);
     }
 
     private boolean checkColor(int color) {
@@ -1932,6 +2016,7 @@ class TerminalEmulator {
         mEscapeState = ESC_NONE;
         mSavedCursorRow = 0;
         mSavedCursorCol = 0;
+        mCursorStyle = 0;
         mSavedEffect = 0;
         mSavedDecFlags_DECSC_DECRC = 0;
         mDecFlags = 0;

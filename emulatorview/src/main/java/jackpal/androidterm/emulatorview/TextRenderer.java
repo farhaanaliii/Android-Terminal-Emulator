@@ -34,6 +34,8 @@ interface TextRenderer {
     public static final int MODE_FN_SHIFT = 6;
 
     void setReverseVideo(boolean reverseVideo);
+    /** Set the DECSCUSR cursor shape: 0/1/2 block, 3/4 underline, 5/6 bar. */
+    void setCursorShape(int shape);
     float getCharacterWidth();
     int getCharacterHeight();
     /** @return pixels above top row of text to avoid looking cramped. */

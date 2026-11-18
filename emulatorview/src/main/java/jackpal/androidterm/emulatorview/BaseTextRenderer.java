@@ -391,8 +391,26 @@ abstract class BaseTextRenderer implements TextRenderer {
         return clone;
     }
 
+    protected int mCursorShape;
+
+    public void setCursorShape(int shape) {
+        mCursorShape = shape;
+    }
+
     protected void drawCursorImp(Canvas canvas, float x, float y, float charWidth, float charHeight,
             int cursorMode) {
+        if (mCursorShape == 3 || mCursorShape == 4) {
+            // DECSCUSR underline cursor
+            float thickness = Math.max(2.0f, charHeight / 8.0f);
+            canvas.drawRect(x, y - thickness, x + charWidth, y, mCursorScreenPaint);
+            return;
+        }
+        if (mCursorShape == 5 || mCursorShape == 6) {
+            // DECSCUSR bar cursor
+            float thickness = Math.max(2.0f, charWidth / 8.0f);
+            canvas.drawRect(x, y - charHeight, x + thickness, y, mCursorScreenPaint);
+            return;
+        }
         if (cursorMode == 0) {
             canvas.drawRect(x,  y - charHeight, x + charWidth, y, mCursorScreenPaint);
             return;

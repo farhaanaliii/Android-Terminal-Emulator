@@ -1843,6 +1843,22 @@ public class EmulatorView extends View implements GestureDetector.OnGestureListe
         }
         int cursorStyle = mKeyListener.getCursorMode();
 
+        // DECSCUSR: apply the app-requested cursor shape, and blink
+        // the cursor for the blinking styles (1, 3, 5). Style 0 is
+        // this terminal's default: a steady block.
+        int appCursorStyle = mEmulator.getCursorStyle();
+        mTextRenderer.setCursorShape(appCursorStyle);
+        boolean cursorBlinks = appCursorStyle == 1 || appCursorStyle == 3 || appCursorStyle == 5;
+        if (cursorBlinks && mCursorBlink == 0) {
+            mCursorBlink = 1;
+            mCursorVisible = true;
+            mHandler.postDelayed(mBlinkCursor, CURSOR_BLINK_PERIOD);
+        } else if (!cursorBlinks && mCursorBlink != 0) {
+            mCursorBlink = 0;
+            mCursorVisible = true;
+            mHandler.removeCallbacks(mBlinkCursor);
+        }
+
         int linkLinesToSkip = 0; //for multi-line links
 
         for (int i = mTopRow; i < endLine; i++) {

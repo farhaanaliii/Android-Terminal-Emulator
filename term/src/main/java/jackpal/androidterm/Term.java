@@ -59,6 +59,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.IBinder;
 import android.os.PowerManager;
+import androidx.core.graphics.ColorUtils;
 import androidx.preference.PreferenceManager;
 
 import com.google.android.material.appbar.MaterialToolbar;
@@ -182,7 +183,8 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     private LinearLayout mExtraKeysSymbolsRow;
     private MaterialButton mCtrlKeyButton;
     private MaterialButton mAltKeyButton;
-    private ColorStateList mExtraKeyDefaultTint;
+    private int mExtraKeyTextColor;
+    private static final int EXTRA_KEY_ACTIVE_TEXT_COLOR = 0xffef5350;
     private int mActionBarMode = TermSettings.ACTION_BAR_MODE_NONE;
 
     private WindowListAdapter mWinListAdapter;
@@ -705,25 +707,53 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
         for (char c : new char[]{'|', '~', '`', '\\', '$', '&', '*', '(', ')', '{', '}', '[', ']', '<', '>', '_', ':', ';', '"', '\''}) {
             addExtraCharButton(mExtraKeysSymbolsRow, c);
         }
+        styleExtraKeysBar();
     }
 
     private MaterialButton addExtraKeyButton(LinearLayout row, String label, View.OnClickListener listener) {
         MaterialButton button = new MaterialButton(this);
         button.setText(label);
-        button.setTextSize(12);
+        button.setAllCaps(true);
+        button.setTextSize(14);
         button.setMinWidth(0);
         button.setMinimumWidth(0);
+        button.setMinHeight(0);
+        button.setMinimumHeight(0);
         button.setInsetTop(0);
         button.setInsetBottom(0);
         button.setPadding(0, 0, 0, 0);
-        int height = (int) (44 * getResources().getDisplayMetrics().density);
+        button.setCornerRadius(0);
+        button.setElevation(0);
+        button.setStateListAnimator(null);
+        int height = Math.round(37.5f * getResources().getDisplayMetrics().density);
         button.setLayoutParams(new LinearLayout.LayoutParams(0, height, 1));
         button.setOnClickListener(listener);
         row.addView(button);
-        if (mExtraKeyDefaultTint == null) {
-            mExtraKeyDefaultTint = button.getBackgroundTintList();
-        }
         return button;
+    }
+
+    private void styleExtraKeysBar() {
+        if (mExtraKeysBar == null) {
+            return;
+        }
+        int[] scheme = mSettings.getColorScheme();
+        int foreColor = scheme[0];
+        int backColor = scheme[1];
+        mExtraKeyTextColor = foreColor;
+        mExtraKeysBar.setBackgroundColor(backColor);
+        int pressedColor = ColorUtils.blendARGB(backColor, foreColor, 0.6f);
+        ColorStateList backgroundTint = new ColorStateList(new int[][]{{android.R.attr.state_pressed}, {}}, new int[]{pressedColor, backColor});
+        ColorStateList rippleColor = ColorStateList.valueOf(0);
+        for (int i = 0; i < mExtraKeysBar.getChildCount(); i++) {
+            ViewGroup row = (ViewGroup) mExtraKeysBar.getChildAt(i);
+            for (int j = 0; j < row.getChildCount(); j++) {
+                MaterialButton button = (MaterialButton) row.getChildAt(j);
+                button.setTextColor(foreColor);
+                button.setRippleColor(rippleColor);
+                button.setBackgroundTintList(backgroundTint);
+            }
+        }
+        refreshExtraKeyStates();
     }
 
     private void addExtraCharButton(LinearLayout row, char c) {
@@ -880,7 +910,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
     }
 
     private void setExtraKeyLatched(MaterialButton button, boolean latched) {
-        button.setBackgroundTintList(latched ? ColorStateList.valueOf(MaterialColors.getColor(button, com.google.android.material.R.attr.colorPrimaryContainer)) : mExtraKeyDefaultTint);
+        button.setTextColor(latched ? EXTRA_KEY_ACTIVE_TEXT_COLOR : mExtraKeyTextColor);
     }
 
     private TermSession getCurrentTermSession() {
@@ -901,6 +931,7 @@ public class Term extends androidx.appcompat.app.AppCompatActivity implements Up
 
         if (mExtraKeysBar != null) {
             mExtraKeysBar.setVisibility(mSettings.showExtraKeysBar() ? View.VISIBLE : View.GONE);
+            styleExtraKeysBar();
         }
 
         DisplayMetrics metrics = new DisplayMetrics();
